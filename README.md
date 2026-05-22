@@ -1,87 +1,98 @@
-# ASMLings Project
+<div align="center">
 
-A lightweight educational sandbox for Intel 8086 assembly programming with a Rust-based emulator runner.
+# ⚙️ ASMLings
 
-## Repository Overview
+**A lightweight, interactive educational sandbox for Intel 8086 assembly programming.**
 
-This codebase is composed of two main parts:
+[![Crates.io](https://img.shields.io/crates/v/asmlings.svg)](https://crates.io/crates/asmlings)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-- `exercises/`
-  - Contains NASM assembly exercise files (`.asm`) that demonstrate basic 8086 instructions and concepts.
-  - Each exercise file includes a `_start` entry point and one or more `ASSERT_REG:` comments that describe expected register values after execution.
-- `src/`
-  - Contains a Rust binary that assembles a chosen exercise, executes it in a Unicorn Engine 16-bit x86 emulator, and verifies the expected register results.
+*Read the code. Write the code. Learn the machine.*
 
-## Exercise Format
+</div>
 
-Each exercise in `exercises/` is a self-contained `.asm` source file.
+---
 
-- Uses `global _start` and `section .text`.
-- Includes standard 8086 instructions such as `mov`, `add`, `sub`, `and`, `or`, `xor`, `shl`, `push`, and `pop`.
-- Contains assertions in comments using the pattern:
+asmlings provides a sandboxed feedback loop powered by a Rust-based 16-bit x86 emulator. You just write code, save the file and instantly check the results.
 
-```asm
-; ASSERT_REG: AX == 0x1337
-```
+> Inspired by the `rustlings` project
 
-The runner parses these directives and compares them against the registers after emulation.
 
-## Runner Architecture
+## Installation
 
-The Rust runner in `src/main.rs` performs the following steps:
-
-1. Locate the `exercises/` directory.
-2. Read all `.asm` files and sort them alphabetically.
-3. Track progress with a small state file named `.asmlings_state` placed in `exercises/`.
-4. Load the current exercise and parse `ASSERT_REG:` lines into expected register values.
-5. Assemble the exercise using `nasm -f bin` into a temporary binary.
-6. Create a Unicorn Engine emulator instance configured for 16-bit x86 mode.
-7. Map 64 KB of memory and load the assembled machine code at address `0x0100`.
-8. Initialize the stack pointer to `0xFFF0`.
-9. Execute the machine code from the loaded entry address to the end of the binary.
-10. Read the requested register values from Unicorn and compare them to the asserted expectations.
-
-If all assertions pass, the runner increments the current exercise index and reports success.
-If any assertion fails, the current exercise is left unchanged so the user can continue working on it.
-
-## Important Files
-
-- `Cargo.toml`
-  - Rust project manifest.
-  - Depends on `unicorn-engine` and `anyhow`.
-- `src/main.rs`
-  - Main runner implementation.
-  - Defines assembly loading, assertion parsing, emulator setup, and exercise progression.
-- `exercises/`
-  - Collection of 8086 assembly exercises.
-  - Each file includes comments and assertions for automated verification.
-
-## Requirements
-
-- `cargo` and Rust toolchain
-- `nasm` assembler
-- `libunicorn` available for the `unicorn-engine` Rust dependency
-
-## Usage
-
-From the repository root:
+To install Asmlings, you need Rust and Cargo installed on your system. 
 
 ```bash
-cargo run
+cargo install asmlings
+
 ```
 
-The runner will load the next exercise, execute it, and print whether each asserted register value matches the expected result.
+**System Dependency:** You must also have the **NASM** assembler installed, as Asmlings uses it under the hood to compile your code before emulation.
 
-## Extending the Codebase
+* **macOS:** `brew install nasm`
+* **Ubuntu/Debian:** `sudo apt install nasm`
+* **Arch Linux:** `sudo pacman -S nasm`
+* **Windows:** `winget install NASM`
 
-To add a new exercise:
+---
 
-1. Create a new file in `exercises/` with a `.asm` extension.
-2. Add the assembly code under `global _start` and `section .text`.
-3. Include one or more `; ASSERT_REG:` directives for the register values to verify.
+## Quick Start
 
-The runner will automatically discover the new exercise the next time it runs.
+Getting started is as simple as running two commands. Navigate to a folder where you want to store your coursework, and run:
 
-## Purpose
+### 1. Initialize the Workspace
 
-This repository is intended as a learning platform for 8086 assembly fundamentals and for experimenting with emulator-driven verification. It is small by design, making it easy to understand, extend, and use as a teaching aid.
+Extracts the exercise files and sets up your progress tracker.
+
+```bash
+asmlings init
+
+```
+
+### 2. Start Watch Mode
+
+This launches a persistent watch loop. Leave this running in your terminal!
+
+```bash
+asmlings start
+
+```
+
+### 3. Solve the Exercises
+
+Open the newly created `exercises/` folder in your favorite text editor. Asmlings will tell you which file to look at. Follow the instructions in the comments, fix the assembly code, and hit save.
+
+Every time you save, Asmlings will automatically re-assemble and verify your code, providing instant terminal feedback.
+
+*(Note: If you just want to run the current exercise once without watching for file changes, you can use `asmlings run`).*
+
+---
+
+## How to use
+Each exercise in the `exercises/` directory is a self-contained `.asm` file demonstrating standard 8086 instructions (e.g., `mov`, `add`, `push`, `pop`, `lodsb`).
+
+To complete an exercise, you must do two things:
+
+1. **Satisfy the Assertions:** The exercise contains commented directives like `; ASSERT_REG: AX == 0x1337` or `; ASSERT_MEM: [0x0200] == 0x42`. Your code must result in the exact register, flag, and memory state requested.
+2. **Remove the Sentinel:** Every file contains an `; I AM NOT DONE` comment. Even if your code compiles and passes the assertions, Asmlings will not advance to the next exercise until you manually delete this line. This ensures you deliberately complete the exercise and understand the solution.
+
+---
+
+## Under the Hood
+
+1. **Assembly:** Assembles your current exercise using `nasm -f bin` into raw machine code.
+2. **Emulation:** Spins up a Unicorn Engine emulator instance strictly configured for 16-bit x86 mode.
+3. **Memory Setup:** Maps 64 KB of memory, loads the machine code at address `0x0100` (just like a classic `.COM` file), and sets the stack pointer to `0xFFF0`.
+4. **Execution:** Runs the machine code with a strict **10,000 instruction limit** to protect your terminal from accidental infinite loops (`jmp $`).
+5. **Verification:** Reads the requested Registers, Memory addresses, and EFLAGS directly from the CPU emulator and compares them to the asserted expectations.
+
+---
+
+## Contributing
+
+Want to write new exercises or improve the runner? Contributions are welcome!
+
+If you are cloning the repository from GitHub:
+
+1. Do not edit files in the `exercises/` folder directly—that is generated for the end-user.
+2. Add new exercises to the `template_exercises/` folder. The `rust-embed` macro will automatically package your new exercise into the CLI the next time you run `cargo build`.
