@@ -1,14 +1,25 @@
 [package]
-name = "runner"
+authors = ["Giacomo Folli <giacomofolli@proton.me>"]
+name = "asmlings"
 version = "0.1.0"
 edition = "2024"
+description = "An educational sandbox for Intel 8086 assembly"
+readme = "README.md"
+repository = "https://github.com/giacomo-folli/asmlings"
+homepage = "https://github.com/giacomo-folli/asmlings"
+license = "MIT OR Apache-2.0"
+keywords = ["assembly", "edu", "cli"]
+categories = ["command-line-utilities"]
+
 
 [[bin]]
 name = "runner"
 path = "src/main.rs"
 
 [dependencies]
+clap = { version = "4.4", features = ["derive"] }
 unicorn-engine = "2.1.5"
 anyhow = "1"
 libc = "0.2"
 notify = "6.1"
+rust-embed = "8.3"

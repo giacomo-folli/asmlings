@@ -10,8 +10,6 @@ global _start
 section .text
 _start:
     ; Write your code here:
-    
-    mov ax, 0xFF00
-    not ax
-    
+    ; I AM NOT DONE
+
     hlt

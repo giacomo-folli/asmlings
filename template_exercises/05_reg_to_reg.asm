@@ -11,7 +11,4 @@ _start:
     ; Write your code here:
     ; I AM NOT DONE
     
-    mov ax, 0xBEEF
-    mov dx, ax
-
     hlt

@@ -7,6 +7,7 @@ use std::{
 };
 
 use notify::{EventKind, RecursiveMode, Watcher};
+use rust_embed::RustEmbed;
 use unicorn_engine::{
     RegisterX86, Unicorn,
     unicorn_const::{Arch, Mode, Prot},
@@ -31,6 +32,67 @@ const YELLOW: &str = "\x1b[33m";
 const GREEN_BG: &str = "\x1b[42;30m";
 const RED_BG: &str = "\x1b[41;30m";
 const YELLOW_BG: &str = "\x1b[43;30m";
+
+#[derive(RustEmbed)]
+#[folder = "template_exercises/"]
+struct TemplateExercises;
+
+use clap::{Parser, Subcommand};
+
+#[derive(Parser)]
+#[command(name = "asmlings")]
+#[command(version, about = "x86 · 16-bit assembly exercises", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Creates a folder with all the blank exercises and needed files
+    Init,
+    /// Launches watch mode on the exercises folder
+    Start,
+    /// Runs the current exercise once (without watching)
+    Run,
+}
+
+fn init_mode() -> anyhow::Result<()> {
+    let dir = PathBuf::from(EXERCISES_FOLDER);
+
+    if dir.exists() {
+        println!("  {YELLOW}⚠  Directory '{}' already exists.{RESET}", EXERCISES_FOLDER);
+        return Ok(());
+    }
+
+    // Create the user's local exercises/ directory
+    fs::create_dir_all(&dir)?;
+
+    // Initialize the state tracker to 0
+    write_current_index(&dir.join(STATE_FILE), 0)?;
+
+    // Extract all embedded files
+    let mut count = 0;
+    for file_path in TemplateExercises::iter() {
+        let file = TemplateExercises::get(&file_path).expect("Failed to read embedded file");
+        let out_path = dir.join(file_path.as_ref());
+
+        // Ensure any subdirectories exist (in case you organize exercises into folders
+        // later)
+        if let Some(parent) = out_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(&out_path, file.data)?;
+        count += 1;
+    }
+
+    println!("  {GREEN}✓{RESET} {BOLD}Initialized {} folder!{RESET}", EXERCISES_FOLDER);
+    println!("  {DIM}Extracted {} exercises.{RESET}", count);
+    println!("  {DIM}Run {RESET}{BLUE}cargo run -- start{RESET}{DIM} to begin.{RESET}");
+
+    Ok(())
+}
 
 // ── Terminal width
 // ────────────────────────────────────────────────────────────
@@ -203,13 +265,31 @@ impl Exercise {
 
 fn assemble(asm_path: &Path) -> anyhow::Result<Vec<u8>> {
     let out_path = asm_path.with_extension("bin");
-    let output = Command::new("nasm")
+
+    // Attempt to execute NASM, catching the specific "Not Found" error
+    let output_res = Command::new("nasm")
         .args(["-f", "bin", "-o", out_path.to_str().unwrap(), asm_path.to_str().unwrap()])
-        .output()?;
+        .output();
+
+    let output = match output_res {
+        Ok(o) => o,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            anyhow::bail!(
+                "NASM is not installed or not in your PATH.\n\n  \
+                {YELLOW}Asmlings requires the NASM assembler to run.{RESET}\n  \
+                {BOLD}To install NASM:{RESET}\n  \
+                • macOS:   {GREEN}brew install nasm{RESET}\n  \
+                • Ubuntu:  {GREEN}sudo apt install nasm{RESET}\n  \
+                • Arch:    {GREEN}sudo pacman -S nasm{RESET}\n  \
+                • Windows: {GREEN}winget install NASM{RESET}  {DIM}(or visit https://nasm.us){RESET}"
+            );
+        },
+        Err(e) => anyhow::bail!("Failed to execute NASM: {}", e),
+    };
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!("NASM error:\n{}", stderr);
+        anyhow::bail!("NASM syntax error:\n{}", stderr);
     }
 
     let bytes = fs::read(&out_path)?;
@@ -484,17 +564,12 @@ fn watch_mode() -> anyhow::Result<()> {
 // ───────────────────────────────────────────────────────────────
 
 fn main() -> anyhow::Result<()> {
-    let args: Vec<String> = std::env::args().collect();
+    let cli = Cli::parse();
 
-    if args.len() > 1 && args[1] == "watch" {
-        watch_mode()
-    } else if args.len() > 1 && args[1] == "run" {
-        run_workflow()
-    } else {
-        println!("Usage:");
-        println!("  cargo run -- run   (Run the current exercise once)");
-        println!("  cargo run -- watch (Watch exercises directory and auto-rebuild)");
-        Ok(())
+    match cli.command {
+        Commands::Init => init_mode(),
+        Commands::Start => watch_mode(),
+        Commands::Run => run_workflow(),
     }
 }
 

@@ -11,8 +11,5 @@ section .text
 _start:
     ; Write your code here:
     ; I AM NOT DONE
-        
-    mov ax, 0x0003
-    shl ax, 4
 
     hlt

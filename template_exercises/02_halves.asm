@@ -12,7 +12,4 @@ _start:
     ; Write your code here:
     ; I AM NOT DONE
 
-    mov ah, 0xAB
-    mov al, 0xCD
-    
     hlt
