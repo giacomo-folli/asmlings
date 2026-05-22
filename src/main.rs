@@ -1,10 +1,12 @@
 use std::{
-    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::mpsc::channel,
+    time::{Duration, Instant},
 };
 
+use notify::{EventKind, RecursiveMode, Watcher};
 use unicorn_engine::{
     RegisterX86, Unicorn,
     unicorn_const::{Arch, Mode, Prot},
@@ -28,6 +30,7 @@ const BLUE: &str = "\x1b[34m";
 const YELLOW: &str = "\x1b[33m";
 const GREEN_BG: &str = "\x1b[42;30m";
 const RED_BG: &str = "\x1b[41;30m";
+const YELLOW_BG: &str = "\x1b[43;30m";
 
 // ── Terminal width
 // ────────────────────────────────────────────────────────────
@@ -63,25 +66,18 @@ fn term_width() -> usize {
 
 /// Print a full-width horizontal rule using `ch`, with 2-space left margin.
 fn rule(ch: &str, w: usize) {
-    // w is the total terminal width; subtract 2 for the leading "  "
     let inner = w.saturating_sub(2);
     println!("  {DIM}{}{RESET}", ch.repeat(inner));
 }
 
 /// Build a full-width banner box.
-///  ┌── A S M L I N G S ── · x86 assembly exercises ──────────── v0.1.0 ──┐
-///  └────────────────────────────────────────────────────────────────────────┘
 fn banner(w: usize, version: &str) {
-    // inner width = total - 2 (left margin) - 2 (│ on each side)
     let inner = w.saturating_sub(4);
-
     let title = "A S M L I N G S";
     let sub = "x86 · 16-bit assembly exercises";
     let ver_tag = format!("v{version}");
 
-    // "  title  ·  sub  " left portion, version right-aligned
     let left = format!("  {title}  ·  {sub}  ");
-    // strip ANSI codes are not present here so len() == display width
     let right = format!("  {ver_tag}  ");
     let pad = inner.saturating_sub(left.len() + right.len());
 
@@ -96,10 +92,8 @@ fn banner(w: usize, version: &str) {
 }
 
 /// Progress bar that fills the terminal width.
-/// Layout:  "  ████████░░░░░░░░░░░░░  10 / 32"
 fn progress_bar(current: usize, total: usize, w: usize) {
     let label = format!("  {} / {}  ", current, total);
-    // bar area = terminal width - 2 (margin) - label width
     let bar_w = w.saturating_sub(2 + label.len());
     let filled = if total == 0 { 0 } else { current * bar_w / total };
     let empty = bar_w.saturating_sub(filled);
@@ -125,10 +119,19 @@ fn write_current_index(state_path: &Path, index: usize) -> anyhow::Result<()> {
 // ── Assertion
 // ─────────────────────────────────────────────────────────────────
 
+#[derive(Debug, Clone)]
+enum Assertion {
+    Register { reg: String, expected: u16 },
+    Memory { addr: u64, expected: u8 },
+    Flag { flag: String, expected: bool },
+}
+
 #[derive(Debug)]
-struct RegAssertion {
-    reg:      String,
-    expected: u16,
+struct AssertionResult {
+    passed:       bool,
+    name_str:     String,
+    expected_str: String,
+    actual_str:   String,
 }
 
 // ── Exercise
@@ -138,7 +141,8 @@ struct RegAssertion {
 struct Exercise {
     path:       PathBuf,
     name:       String,
-    assertions: Vec<RegAssertion>,
+    assertions: Vec<Assertion>,
+    is_done:    bool,
 }
 
 impl Exercise {
@@ -147,26 +151,50 @@ impl Exercise {
         let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
 
         let mut assertions = Vec::new();
+        let mut is_done = true;
+
         for line in src.lines() {
             let line = line.trim();
-            if let Some(rest) = line
-                .strip_prefix(';')
-                .map(str::trim)
-                .and_then(|l| l.strip_prefix("ASSERT_REG:").map(str::trim))
-            {
-                let parts: Vec<&str> = rest.splitn(3, ' ').collect();
-                if parts.len() == 3 && parts[1] == "==" {
-                    let reg = parts[0].to_uppercase();
-                    let val_str = parts[2].trim();
-                    let expected = parse_u16(val_str).ok_or_else(|| {
-                        anyhow::anyhow!("Cannot parse assertion value: {}", val_str)
-                    })?;
-                    assertions.push(RegAssertion { reg, expected });
+
+            // Sentinel Check
+            if line == "; I AM NOT DONE" {
+                is_done = false;
+                continue;
+            }
+
+            if let Some(rest) = line.strip_prefix(';').map(str::trim) {
+                if let Some(reg_rest) = rest.strip_prefix("ASSERT_REG:").map(str::trim) {
+                    let parts: Vec<&str> = reg_rest.splitn(3, ' ').collect();
+                    if parts.len() == 3 && parts[1] == "==" {
+                        let reg = parts[0].to_uppercase();
+                        let expected = parse_u64(parts[2]).ok_or_else(|| {
+                            anyhow::anyhow!("Cannot parse assertion value: {}", parts[2])
+                        })? as u16;
+                        assertions.push(Assertion::Register { reg, expected });
+                    }
+                } else if let Some(mem_rest) = rest.strip_prefix("ASSERT_MEM:").map(str::trim) {
+                    let parts: Vec<&str> = mem_rest.splitn(3, ' ').collect();
+                    if parts.len() == 3 && parts[1] == "==" {
+                        let addr = parse_u64(parts[0]).ok_or_else(|| {
+                            anyhow::anyhow!("Cannot parse memory address: {}", parts[0])
+                        })?;
+                        let expected = parse_u64(parts[2]).ok_or_else(|| {
+                            anyhow::anyhow!("Cannot parse memory value: {}", parts[2])
+                        })? as u8;
+                        assertions.push(Assertion::Memory { addr, expected });
+                    }
+                } else if let Some(flag_rest) = rest.strip_prefix("ASSERT_FLAG:").map(str::trim) {
+                    let parts: Vec<&str> = flag_rest.splitn(3, ' ').collect();
+                    if parts.len() == 3 && parts[1] == "==" {
+                        let flag = parts[0].to_uppercase();
+                        let expected = parts[2].trim() == "1";
+                        assertions.push(Assertion::Flag { flag, expected });
+                    }
                 }
             }
         }
 
-        Ok(Exercise { path, name, assertions })
+        Ok(Exercise { path, name, assertions, is_done })
     }
 }
 
@@ -211,7 +239,7 @@ fn name_to_reg(name: &str) -> anyhow::Result<RegisterX86> {
     })
 }
 
-fn run_exercise(ex: &Exercise) -> anyhow::Result<HashMap<String, u16>> {
+fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
     let code = assemble(&ex.path)?;
 
     let mut emu = Unicorn::new(Arch::X86, Mode::MODE_16)
@@ -226,24 +254,66 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<HashMap<String, u16>> {
         .map_err(|e| anyhow::anyhow!("reg_write SP failed: {:?}", e))?;
 
     let end_addr = LOAD_ADDR + code.len() as u64;
-    emu.emu_start(LOAD_ADDR, end_addr, 0, 0)
-        .map_err(|e| anyhow::anyhow!("emu_start failed: {:?}", e))?;
 
-    let mut results = HashMap::new();
+    // Timeout: 0 (infinite time)
+    // Count: 10_000 instructions max (Infinite Loop Protection)
+    if let Err(e) = emu.emu_start(LOAD_ADDR, end_addr, 0, 10_000) {
+        anyhow::bail!("Emulation failed or timed out (infinite loop?): {:?}", e);
+    }
+
+    let mut results = Vec::new();
     for assertion in &ex.assertions {
-        let reg = name_to_reg(&assertion.reg)?;
-        let val = emu
-            .reg_read(reg)
-            .map_err(|e| anyhow::anyhow!("reg_read {} failed: {:?}", assertion.reg, e))?;
-        results.insert(assertion.reg.clone(), val as u16);
+        let res = match assertion {
+            Assertion::Register { reg, expected } => {
+                let r = name_to_reg(reg)?;
+                let val = emu.reg_read(r)? as u16;
+                AssertionResult {
+                    passed:       val == *expected,
+                    name_str:     reg.clone(),
+                    expected_str: format!("0x{:04X}", expected),
+                    actual_str:   format!("0x{:04X}", val),
+                }
+            },
+            Assertion::Memory { addr, expected } => {
+                let mut buf = [0u8; 1];
+                emu.mem_read(*addr, &mut buf)?;
+                let val = buf[0];
+                AssertionResult {
+                    passed:       val == *expected,
+                    name_str:     format!("[0x{:04X}]", addr),
+                    expected_str: format!("0x{:02X}", expected),
+                    actual_str:   format!("0x{:02X}", val),
+                }
+            },
+            Assertion::Flag { flag, expected } => {
+                let eflags = emu.reg_read(RegisterX86::EFLAGS)? as u32;
+                let bit = match flag.as_str() {
+                    "CF" => 0,
+                    "PF" => 2,
+                    "AF" => 4,
+                    "ZF" => 6,
+                    "SF" => 7,
+                    "OF" => 11,
+                    _ => anyhow::bail!("Unknown flag: {}", flag),
+                };
+                let val = (eflags & (1 << bit)) != 0;
+                AssertionResult {
+                    passed:       val == *expected,
+                    name_str:     flag.clone(),
+                    expected_str: if *expected { "1".to_string() } else { "0".to_string() },
+                    actual_str:   if val { "1".to_string() } else { "0".to_string() },
+                }
+            },
+        };
+        results.push(res);
     }
     Ok(results)
 }
 
-// ── Entry point
-// ───────────────────────────────────────────────────────────────
+// ── Workflow
+// ──────────────────────────────────────────────────────────────────
 
-fn main() -> anyhow::Result<()> {
+fn run_workflow() -> anyhow::Result<()> {
     let w = term_width();
 
     let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
@@ -289,7 +359,7 @@ fn main() -> anyhow::Result<()> {
     println!();
 
     if ex.assertions.is_empty() {
-        println!("  {YELLOW}⚠  no ASSERT_REG directives found in this exercise{RESET}");
+        println!("  {YELLOW}⚠  no assertions found in this exercise{RESET}");
         println!();
         return Ok(());
     }
@@ -302,19 +372,17 @@ fn main() -> anyhow::Result<()> {
         Ok(results) => {
             let mut all_passed = true;
 
-            for assertion in &ex.assertions {
-                let actual = results.get(&assertion.reg).copied().unwrap_or(0);
-                if actual == assertion.expected {
+            for res in &results {
+                if res.passed {
                     println!(
-                        "  {GREEN}✓{RESET}  {BLUE}{}{RESET}  {DIM}=={RESET}  \
-                         {GREEN}0x{:04X}{RESET}",
-                        assertion.reg, assertion.expected
+                        "  {GREEN}✓{RESET}  {BLUE}{:<8}{RESET}  {DIM}=={RESET}  {GREEN}{}{RESET}",
+                        res.name_str, res.expected_str
                     );
                 } else {
                     println!(
-                        "  {RED}✗{RESET}  {BLUE}{}{RESET}  {DIM}expected{RESET} \
-                         {GREEN}0x{:04X}{RESET}  {DIM}got{RESET}  {RED}0x{:04X}{RESET}",
-                        assertion.reg, assertion.expected, actual
+                        "  {RED}✗{RESET}  {BLUE}{:<8}{RESET}  {DIM}expected{RESET} \
+                         {GREEN}{:<8}{RESET} {DIM}got{RESET} {RED}{}{RESET}",
+                        res.name_str, res.expected_str, res.actual_str
                     );
                     all_passed = false;
                 }
@@ -323,28 +391,35 @@ fn main() -> anyhow::Result<()> {
             println!();
 
             if all_passed {
-                println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
-                write_current_index(&state_path, current + 1)?;
-
-                if current + 1 >= total {
-                    println!();
+                if !ex.is_done {
                     println!(
-                        "  {GREEN_BG} COMPLETE {RESET}  {BOLD}You've finished every \
-                         exercise!{RESET}"
+                        "  {YELLOW_BG} IN PROGRESS {RESET}  {BOLD}Assertions passed, but remove \
+                         '; I AM NOT DONE' to advance.{RESET}"
                     );
                 } else {
-                    let next = Exercise::load(paths[current + 1].clone())?;
-                    let next_display = next.name.replace('_', " ");
-                    println!(
-                        "  {DIM}next up  {RESET}{BLUE}exercises/{}.asm{RESET}  \
-                         {DIM}({next_display}){RESET}",
-                        next.name
-                    );
+                    println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
+                    write_current_index(&state_path, current + 1)?;
+
+                    if current + 1 >= total {
+                        println!();
+                        println!(
+                            "  {GREEN_BG} COMPLETE {RESET}  {BOLD}You've finished every \
+                             exercise!{RESET}"
+                        );
+                    } else {
+                        let next = Exercise::load(paths[current + 1].clone())?;
+                        let next_display = next.name.replace('_', " ");
+                        println!(
+                            "  {DIM}next up  {RESET}{BLUE}exercises/{}.asm{RESET}  \
+                             {DIM}({next_display}){RESET}",
+                            next.name
+                        );
+                    }
                 }
             } else {
                 println!(
-                    "  {RED_BG} FAIL {RESET}  fix the assertions above, then run {DIM}cargo \
-                     run{RESET}"
+                    "  {RED_BG} FAIL {RESET}  fix the assertions above and save the file to \
+                     re-run{RESET}"
                 );
                 println!("  {DIM}file     {RESET}{BLUE}exercises/{}.asm{RESET}", ex.name);
             }
@@ -360,14 +435,77 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+// ── Watch Mode
+// ────────────────────────────────────────────────────────────────
+
+fn watch_mode() -> anyhow::Result<()> {
+    print!("\x1B[2J\x1B[1;1H");
+    let _ = run_workflow();
+
+    let (tx, rx) = channel();
+    let mut watcher = notify::recommended_watcher(tx)?;
+
+    let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
+        .into_iter()
+        .find(|p| p.is_dir())
+        .ok_or_else(|| anyhow::anyhow!("Could not find exercises/ directory to watch"))?;
+
+    watcher.watch(&exercises_dir, RecursiveMode::Recursive)?;
+
+    println!("  {DIM}Watching for file changes in {}...{RESET}", exercises_dir.display());
+
+    let mut last_run = Instant::now();
+
+    loop {
+        match rx.recv() {
+            Ok(Ok(event)) => {
+                if matches!(event.kind, EventKind::Modify(_)) {
+                    if last_run.elapsed() > Duration::from_millis(200) {
+                        print!("\x1B[2J\x1B[1;1H");
+
+                        if let Err(e) = run_workflow() {
+                            println!("  {RED}Fatal error running workflow:{RESET} {}", e);
+                        }
+
+                        println!(
+                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop){RESET}"
+                        );
+                        last_run = Instant::now();
+                    }
+                }
+            },
+            Ok(Err(e)) => println!("  {RED}Watch error:{RESET} {:?}", e),
+            Err(e) => anyhow::bail!("Channel receive error: {:?}", e),
+        }
+    }
+}
+
+// ── Entry point
+// ───────────────────────────────────────────────────────────────
+
+fn main() -> anyhow::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() > 1 && args[1] == "watch" {
+        watch_mode()
+    } else if args.len() > 1 && args[1] == "run" {
+        run_workflow()
+    } else {
+        println!("Usage:");
+        println!("  cargo run -- run   (Run the current exercise once)");
+        println!("  cargo run -- watch (Watch exercises directory and auto-rebuild)");
+        Ok(())
+    }
+}
+
 // ── Utilities
 // ─────────────────────────────────────────────────────────────────
 
-fn parse_u16(s: &str) -> Option<u16> {
+fn parse_u64(s: &str) -> Option<u64> {
     let s = s.trim();
     if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-        u16::from_str_radix(hex, 16).ok()
+        u64::from_str_radix(hex, 16).ok()
     } else {
-        s.parse::<u16>().ok()
+        s.parse::<u64>().ok()
     }
 }

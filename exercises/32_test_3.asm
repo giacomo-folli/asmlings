@@ -28,5 +28,6 @@ _start:
     ; Hint: "shr ax, 1" shifts bit 0 of AX into CF.
     ;       "adc bx, 0" adds CF to BX without any extra branch.
 
+    ; I AM NOT DONE    
 
     hlt

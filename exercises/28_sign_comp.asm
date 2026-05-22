@@ -13,8 +13,10 @@ global _start
 section .text
 _start:
     mov ax, 0xFFFE
-    ; Write your code here (CMP + JL):
 
+    ; Write your code here:
+    ; I AM NOT DONE
+    
 is_negative:
     mov bx, 0xFFFF
     hlt

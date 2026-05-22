@@ -11,6 +11,8 @@ global _start
 section .text
 _start:
     mov ax, 0x000A
+    
     ; Write your code here:
-
+    ; I AM NOT DONE
+    
     hlt

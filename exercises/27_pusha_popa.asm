@@ -20,8 +20,10 @@ _start:
     mov cx, 0x0003
     pusha
     call clobber
-    ; Write your code here (one instruction to restore registers):
 
+    ; Write your code here:
+    ; I AM NOT DONE
+    
     hlt
 
 clobber:

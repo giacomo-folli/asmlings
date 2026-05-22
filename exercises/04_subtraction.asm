@@ -7,6 +7,7 @@ global _start
 section .text
 _start:
     ; Write your code here:
+    ; I AM NOT DONE
 
     mov cx, 0x0050
     sub cx, 0x000F

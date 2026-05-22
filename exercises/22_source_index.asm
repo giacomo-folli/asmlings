@@ -14,7 +14,9 @@ section .text
 _start:
     mov si, numbers
     xor bx, bx
-    ; Write your code here (three load-and-add steps):
+    
+    ; Write your code here:
+    ; I AM NOT DONE
 
     hlt
 

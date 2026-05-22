@@ -7,7 +7,8 @@ global _start
 section .text
 _start:
     ; Write your code here:
-
+    ; I AM NOT DONE
+    
     mov bx, 0x0010
     add bx, 0x0005
     

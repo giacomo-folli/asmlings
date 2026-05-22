@@ -12,6 +12,8 @@ section .text
 _start:
     xor ax, ax
     mov cx, 4
-    ; Write your loop here:
-
+    
+    ; Write your code here:
+    ; I AM NOT DONE
+    
     hlt

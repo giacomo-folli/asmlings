@@ -14,5 +14,6 @@ global _start
 section .text
 _start:
     ; Write your code here:
-
+    ; I AM NOT DONE
+    
     hlt

@@ -9,8 +9,9 @@
 global _start
 section .text
 _start:
-    ; Write your code here (load the word at `my_value` into AX):
-
+    ; Write your code here:
+    ; I AM NOT DONE
+    
     hlt
 
 section .data

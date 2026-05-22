@@ -9,8 +9,8 @@
 global _start
 section .text
 _start:
-    ; I AM NOT DONE
     ; Write your code here:
+    ; I AM NOT DONE
 
     mov ah, 0xAB
     mov al, 0xCD

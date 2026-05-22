@@ -13,6 +13,8 @@ section .text
 _start:
     mov ax, 0x1111
     mov bx, 0x2222
-    ; Write your code here (one instruction):
 
+    ; Write your code here:
+    ; I AM NOT DONE
+    
     hlt

@@ -22,6 +22,8 @@ _start:
     mov ax, 0xFFFF
     mov cx, 0x0000
     mov bx, 0x0001
-    ; Write your code here (ADD then ADC):
 
+    ; Write your code here:
+    ; I AM NOT DONE
+    
     hlt

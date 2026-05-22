@@ -28,7 +28,9 @@ _start:
 ; Clobbers: FLAGS only
 ; -----------------------------------------------
 abs_val:
-    ; Write your code here.
+    ; Write your code here:
     ; Hint: compare AX to 0, then conditionally NEG it.
+    
+    ; I AM NOT DONE    
 
     ret

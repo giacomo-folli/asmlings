@@ -13,8 +13,10 @@ global _start
 section .text
 _start:
     mov ax, 0x0005
-    ; Write your code here (TEST + JNZ/JZ):
 
+    ; Write your code here:
+    ; I AM NOT DONE
+    
 bit_set:
     mov bx, 0x0001
     hlt

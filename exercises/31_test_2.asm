@@ -19,6 +19,7 @@ _start:
     mov ax, 0x0000          ; AX = running maximum (start at 0)
 
     ; Write your loop here:
+    ; I AM NOT DONE    
 
 
     hlt
