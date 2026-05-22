@@ -16,16 +16,27 @@ ASMLings provides a sandboxed feedback loop powered by a Rust-based 16-bit x86 e
 
 ## Installation
 
-To install Asmlings, you need Rust and Cargo installed on your system. 
+### Using cargo-binstall (fast, no compilation)
 
-> Note: Installation will take some time to complete the `unicorn-engine-sys` build step.
+```bash
+cargo install cargo-binstall
+cargo binstall asmlings
+```
+
+### Using Cargo
 
 ```bash
 cargo install asmlings
-
 ```
 
-**System Dependency:** You must also have the **NASM** assembler installed, as Asmlings uses it under the hood to compile your code before emulation.
+### Manual Download
+
+Download binaries from the GitHub Releases page:
+https://github.com/giacomo-folli/asmlings/releases```
+
+### System Dependency
+
+You must also have the **NASM** assembler installed, as Asmlings uses it under the hood to compile your code before emulation.
 
 * **macOS:** `brew install nasm`
 * **Ubuntu/Debian:** `sudo apt install nasm`
