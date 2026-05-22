@@ -9,7 +9,7 @@ This codebase is composed of two main parts:
 - `exercises/`
   - Contains NASM assembly exercise files (`.asm`) that demonstrate basic 8086 instructions and concepts.
   - Each exercise file includes a `_start` entry point and one or more `ASSERT_REG:` comments that describe expected register values after execution.
-- `runner/`
+- `src/`
   - Contains a Rust binary that assembles a chosen exercise, executes it in a Unicorn Engine 16-bit x86 emulator, and verifies the expected register results.
 
 ## Exercise Format
@@ -28,7 +28,7 @@ The runner parses these directives and compares them against the registers after
 
 ## Runner Architecture
 
-The Rust runner in `runner/src/main.rs` performs the following steps:
+The Rust runner in `src/main.rs` performs the following steps:
 
 1. Locate the `exercises/` directory.
 2. Read all `.asm` files and sort them alphabetically.
@@ -46,10 +46,10 @@ If any assertion fails, the current exercise is left unchanged so the user can c
 
 ## Important Files
 
-- `runner/Cargo.toml`
+- `Cargo.toml`
   - Rust project manifest.
   - Depends on `unicorn-engine` and `anyhow`.
-- `runner/src/main.rs`
+- `src/main.rs`
   - Main runner implementation.
   - Defines assembly loading, assertion parsing, emulator setup, and exercise progression.
 - `exercises/`
@@ -67,13 +67,6 @@ If any assertion fails, the current exercise is left unchanged so the user can c
 From the repository root:
 
 ```bash
-cargo run --manifest-path runner/Cargo.toml --bin runner
-```
-
-Or from inside the `runner/` directory:
-
-```bash
-cd runner
 cargo run
 ```
 
