@@ -23,7 +23,7 @@ cargo install cargo-binstall
 cargo binstall asmlings
 ```
 
-### Using Cargo
+### Using Cargo (with compilation step)
 
 ```bash
 cargo install asmlings
@@ -31,8 +31,7 @@ cargo install asmlings
 
 ### Manual Download
 
-Download binaries from the GitHub Releases page:
-https://github.com/giacomo-folli/asmlings/releases```
+Download binaries from the [GitHub Releases page](https://github.com/giacomo-folli/asmlings/releases)
 
 ### System Dependency
 
