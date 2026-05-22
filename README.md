@@ -32,6 +32,25 @@ cargo install asmlings
 * **Arch Linux:** `sudo pacman -S nasm`
 * **Windows:** `winget install NASM`
 
+### Troubleshooting Installation (Linux)
+
+If `cargo install asmlings` fails with a linker error mentioning `__atomic_compare_exchange_16` or `undefined symbol`, your system needs the `libatomic` library to compile the underlying CPU emulator.
+
+To fix this, run the installation with the atomic linker flag:
+
+```bash
+RUSTFLAGS="-Clink-arg=-latomic" cargo install asmlings
+
+```
+
+*If the compiler says `-latomic` cannot be found, install it via your package manager:*
+
+* **Ubuntu/Debian:** `sudo apt install libatomic1`
+* **Arch Linux:** `sudo pacman -S gcc-libs`
+* **Fedora/RHEL:** `sudo dnf install libatomic`
+
+---
+
 ## Quick Start
 
 Getting started is as simple as running two commands. Navigate to a folder where you want to store your coursework, and run:
