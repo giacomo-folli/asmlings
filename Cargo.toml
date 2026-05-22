@@ -1,7 +1,7 @@
 [package]
 authors = ["Giacomo Folli <giacomofolli@proton.me>"]
 name = "asmlings"
-version = "0.1.1"
+version = "0.1.3"
 edition = "2024"
 description = "An educational sandbox for Intel 8086 assembly"
 readme = "README.md"
@@ -25,5 +25,6 @@ notify = "6.1"
 rust-embed = "8.3"
 
 [package.metadata.binstall]
-pkg-url = "{ repo }/releases/download/v{ version }/asmlings-{ target }{ archive-suffix }"
-bin-dir = "asmlings{ binary-ext }"
+pkg-url = "{ repo }/releases/download/v{ version }/asmlings-{ target }{ binary-ext }"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "bin"
