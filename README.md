@@ -7,13 +7,9 @@
 [![Crates.io](https://img.shields.io/crates/v/asmlings.svg)](https://crates.io/crates/asmlings)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-*Read the code. Write the code. Learn the machine.*
-
 </div>
 
----
-
-asmlings provides a sandboxed feedback loop powered by a Rust-based 16-bit x86 emulator. You just write code, save the file and instantly check the results.
+ASMLings provides a sandboxed feedback loop powered by a Rust-based 16-bit x86 emulator. You just write code, save the file and instantly check the results.
 
 > Inspired by the `rustlings` project
 
@@ -33,8 +29,6 @@ cargo install asmlings
 * **Ubuntu/Debian:** `sudo apt install nasm`
 * **Arch Linux:** `sudo pacman -S nasm`
 * **Windows:** `winget install NASM`
-
----
 
 ## Quick Start
 
@@ -66,8 +60,6 @@ Every time you save, Asmlings will automatically re-assemble and verify your cod
 
 *(Note: If you just want to run the current exercise once without watching for file changes, you can use `asmlings run`).*
 
----
-
 ## How to use
 Each exercise in the `exercises/` directory is a self-contained `.asm` file demonstrating standard 8086 instructions (e.g., `mov`, `add`, `push`, `pop`, `lodsb`).
 
@@ -76,23 +68,6 @@ To complete an exercise, you must do two things:
 1. **Satisfy the Assertions:** The exercise contains commented directives like `; ASSERT_REG: AX == 0x1337` or `; ASSERT_MEM: [0x0200] == 0x42`. Your code must result in the exact register, flag, and memory state requested.
 2. **Remove the Sentinel:** Every file contains an `; I AM NOT DONE` comment. Even if your code compiles and passes the assertions, Asmlings will not advance to the next exercise until you manually delete this line. This ensures you deliberately complete the exercise and understand the solution.
 
----
-
-## Under the Hood
-
-1. **Assembly:** Assembles your current exercise using `nasm -f bin` into raw machine code.
-2. **Emulation:** Spins up a Unicorn Engine emulator instance strictly configured for 16-bit x86 mode.
-3. **Memory Setup:** Maps 64 KB of memory, loads the machine code at address `0x0100` (just like a classic `.COM` file), and sets the stack pointer to `0xFFF0`.
-4. **Execution:** Runs the machine code with a strict **10,000 instruction limit** to protect your terminal from accidental infinite loops (`jmp $`).
-5. **Verification:** Reads the requested Registers, Memory addresses, and EFLAGS directly from the CPU emulator and compares them to the asserted expectations.
-
----
-
 ## Contributing
 
-Want to write new exercises or improve the runner? Contributions are welcome!
-
-If you are cloning the repository from GitHub:
-
-1. Do not edit files in the `exercises/` folder directly—that is generated for the end-user.
-2. Add new exercises to the `template_exercises/` folder. The `rust-embed` macro will automatically package your new exercise into the CLI the next time you run `cargo build`.
+Contributions are welcome!
