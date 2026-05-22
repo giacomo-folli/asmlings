@@ -12,9 +12,104 @@ use unicorn_engine::{
 
 const LOAD_ADDR: u64 = 0x0100;
 const MEM_BASE: u64 = 0x0000;
-const MEM_SIZE: u64 = 0x10000; // 64 KB
+const MEM_SIZE: u64 = 0x10000;
 const STATE_FILE: &str = ".asmlings_state";
 const EXERCISES_FOLDER: &str = "./exercises";
+
+// ── ANSI helpers
+// ──────────────────────────────────────────────────────────────
+
+const RESET: &str = "\x1b[0m";
+const BOLD: &str = "\x1b[1m";
+const DIM: &str = "\x1b[2m";
+const GREEN: &str = "\x1b[32m";
+const RED: &str = "\x1b[31m";
+const BLUE: &str = "\x1b[34m";
+const YELLOW: &str = "\x1b[33m";
+const GREEN_BG: &str = "\x1b[42;30m";
+const RED_BG: &str = "\x1b[41;30m";
+
+// ── Terminal width
+// ────────────────────────────────────────────────────────────
+
+fn term_width() -> usize {
+    #[cfg(unix)]
+    {
+        use std::os::unix::io::AsRawFd;
+        #[repr(C)]
+        struct Winsize {
+            rows: u16,
+            cols: u16,
+            xpix: u16,
+            ypix: u16,
+        }
+        let mut ws = Winsize { rows: 0, cols: 0, xpix: 0, ypix: 0 };
+        // TIOCGWINSZ = 0x5413 on Linux, 0x40087468 on macOS
+        #[cfg(target_os = "macos")]
+        const TIOCGWINSZ: u64 = 0x40087468;
+        #[cfg(not(target_os = "macos"))]
+        const TIOCGWINSZ: u64 = 0x5413;
+        let fd = std::io::stderr().as_raw_fd();
+        let ok = unsafe { libc::ioctl(fd, TIOCGWINSZ, &mut ws) };
+        if ok == 0 && ws.cols > 0 {
+            return ws.cols as usize;
+        }
+    }
+    80 // fallback
+}
+
+// ── Drawing helpers
+// ───────────────────────────────────────────────────────────
+
+/// Print a full-width horizontal rule using `ch`, with 2-space left margin.
+fn rule(ch: &str, w: usize) {
+    // w is the total terminal width; subtract 2 for the leading "  "
+    let inner = w.saturating_sub(2);
+    println!("  {DIM}{}{RESET}", ch.repeat(inner));
+}
+
+/// Build a full-width banner box.
+///  ┌── A S M L I N G S ── · x86 assembly exercises ──────────── v0.1.0 ──┐
+///  └────────────────────────────────────────────────────────────────────────┘
+fn banner(w: usize, version: &str) {
+    // inner width = total - 2 (left margin) - 2 (│ on each side)
+    let inner = w.saturating_sub(4);
+
+    let title = "A S M L I N G S";
+    let sub = "x86 · 16-bit assembly exercises";
+    let ver_tag = format!("v{version}");
+
+    // "  title  ·  sub  " left portion, version right-aligned
+    let left = format!("  {title}  ·  {sub}  ");
+    // strip ANSI codes are not present here so len() == display width
+    let right = format!("  {ver_tag}  ");
+    let pad = inner.saturating_sub(left.len() + right.len());
+
+    println!();
+    println!("  {BOLD}┌{}┐{RESET}", "─".repeat(inner));
+    println!(
+        "  {BOLD}│{RESET}{BOLD}{left}{RESET}{DIM}{}{right}{RESET}{BOLD}│{RESET}",
+        " ".repeat(pad)
+    );
+    println!("  {BOLD}└{}┘{RESET}", "─".repeat(inner));
+    println!();
+}
+
+/// Progress bar that fills the terminal width.
+/// Layout:  "  ████████░░░░░░░░░░░░░  10 / 32"
+fn progress_bar(current: usize, total: usize, w: usize) {
+    let label = format!("  {} / {}  ", current, total);
+    // bar area = terminal width - 2 (margin) - label width
+    let bar_w = w.saturating_sub(2 + label.len());
+    let filled = if total == 0 { 0 } else { current * bar_w / total };
+    let empty = bar_w.saturating_sub(filled);
+
+    println!(
+        "  {GREEN}{}{RESET}{DIM}{}{RESET}{DIM}{label}{RESET}",
+        "█".repeat(filled),
+        "░".repeat(empty),
+    );
+}
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
@@ -27,8 +122,8 @@ fn write_current_index(state_path: &Path, index: usize) -> anyhow::Result<()> {
     Ok(())
 }
 
-// ── Assertion parsed from exercise comments
-// ───────────────────────────────────
+// ── Assertion
+// ─────────────────────────────────────────────────────────────────
 
 #[derive(Debug)]
 struct RegAssertion {
@@ -36,8 +131,8 @@ struct RegAssertion {
     expected: u16,
 }
 
-// ── Exercise metadata
-// ─────────────────────────────────────────────────────────
+// ── Exercise
+// ──────────────────────────────────────────────────────────────────
 
 #[derive(Debug)]
 struct Exercise {
@@ -149,6 +244,8 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<HashMap<String, u16>> {
 // ───────────────────────────────────────────────────────────────
 
 fn main() -> anyhow::Result<()> {
+    let w = term_width();
+
     let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
         .into_iter()
         .find(|p| p.is_dir())
@@ -164,67 +261,102 @@ fn main() -> anyhow::Result<()> {
     paths.sort();
 
     if paths.is_empty() {
-        println!("No .asm exercises found in {}", exercises_dir.display());
+        println!("  {YELLOW}no .asm exercises found in {}{RESET}", exercises_dir.display());
         return Ok(());
     }
 
+    let total = paths.len();
     let current = read_current_index(&state_path);
 
-    if current >= paths.len() {
-        println!("\n  🎉  All {} exercises complete!", paths.len());
+    // ── Banner ────────────────────────────────────────────────────────────────
+    banner(w, env!("CARGO_PKG_VERSION"));
+
+    if current >= total {
+        println!(
+            "  {GREEN_BG} COMPLETE {RESET}  {BOLD}All {total} exercises done. You're an assembly \
+             wizard.{RESET}"
+        );
+        println!();
         return Ok(());
     }
 
     let ex = Exercise::load(paths[current].clone())?;
-    let display_name = ex.name.replace('_', " ").to_uppercase();
+    let display_name = ex.name.replace('_', " ");
 
-    println!("\n╔══════════════════════════════════════════════════════════╗");
-    println!("║                  A S M L I N G S                        ║");
-    println!("╚══════════════════════════════════════════════════════════╝");
-    println!("\n  Exercise {}/{}: {}", current + 1, paths.len(), display_name);
-    println!("{}", "─".repeat(60));
+    // ── Exercise header ───────────────────────────────────────────────────────
+    println!("  {DIM}exercise {}/{total}{RESET}  {BOLD}{display_name}{RESET}", current + 1);
+    rule("─", w);
+    println!();
 
     if ex.assertions.is_empty() {
-        println!("  ⚠  No ASSERT_REG directives found in this exercise.");
+        println!("  {YELLOW}⚠  no ASSERT_REG directives found in this exercise{RESET}");
+        println!();
         return Ok(());
     }
 
+    // ── Run & report ──────────────────────────────────────────────────────────
     match run_exercise(&ex) {
         Err(e) => {
-            println!("  ✗  {}", e);
+            println!("  {RED}✗  error:{RESET} {e}");
         },
         Ok(results) => {
             let mut all_passed = true;
+
             for assertion in &ex.assertions {
                 let actual = results.get(&assertion.reg).copied().unwrap_or(0);
                 if actual == assertion.expected {
-                    println!("  ✓  {} == 0x{:04X}", assertion.reg, assertion.expected);
+                    println!(
+                        "  {GREEN}✓{RESET}  {BLUE}{}{RESET}  {DIM}=={RESET}  \
+                         {GREEN}0x{:04X}{RESET}",
+                        assertion.reg, assertion.expected
+                    );
                 } else {
                     println!(
-                        "  ✗  {}: expected 0x{:04X}, got 0x{:04X}",
+                        "  {RED}✗{RESET}  {BLUE}{}{RESET}  {DIM}expected{RESET} \
+                         {GREEN}0x{:04X}{RESET}  {DIM}got{RESET}  {RED}0x{:04X}{RESET}",
                         assertion.reg, assertion.expected, actual
                     );
                     all_passed = false;
                 }
             }
 
+            println!();
+
             if all_passed {
-                println!("\n  🎉  Passed! Moving to the next exercise.");
+                println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
                 write_current_index(&state_path, current + 1)?;
 
-                if current + 1 >= paths.len() {
-                    println!("  🏆  You've completed all exercises!");
+                if current + 1 >= total {
+                    println!();
+                    println!(
+                        "  {GREEN_BG} COMPLETE {RESET}  {BOLD}You've finished every \
+                         exercise!{RESET}"
+                    );
                 } else {
                     let next = Exercise::load(paths[current + 1].clone())?;
-                    println!("  👉  Next up: exercises/{}.asm", next.name);
+                    let next_display = next.name.replace('_', " ");
+                    println!(
+                        "  {DIM}next up  {RESET}{BLUE}exercises/{}.asm{RESET}  \
+                         {DIM}({next_display}){RESET}",
+                        next.name
+                    );
                 }
             } else {
-                println!("\n  👉  Keep working on: exercises/{}.asm", ex.name);
+                println!(
+                    "  {RED_BG} FAIL {RESET}  fix the assertions above, then run {DIM}cargo \
+                     run{RESET}"
+                );
+                println!("  {DIM}file     {RESET}{BLUE}exercises/{}.asm{RESET}", ex.name);
             }
         },
     }
 
-    println!("{}\n", "─".repeat(60));
+    // ── Progress ──────────────────────────────────────────────────────────────
+    println!();
+    rule("─", w);
+    progress_bar(current, total, w);
+    println!();
+
     Ok(())
 }
 
