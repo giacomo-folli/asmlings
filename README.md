@@ -18,6 +18,8 @@ ASMLings provides a sandboxed feedback loop powered by a Rust-based 16-bit x86 e
 
 To install Asmlings, you need Rust and Cargo installed on your system. 
 
+> Note: Installation will take some time to complete the `unicorn-engine-sys` build step.
+
 ```bash
 cargo install asmlings
 
