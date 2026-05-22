@@ -89,7 +89,7 @@ fn init_mode() -> anyhow::Result<()> {
 
     println!("  {GREEN}✓{RESET} {BOLD}Initialized {} folder!{RESET}", EXERCISES_FOLDER);
     println!("  {DIM}Extracted {} exercises.{RESET}", count);
-    println!("  {DIM}Run {RESET}{BLUE}cargo run -- start{RESET}{DIM} to begin.{RESET}");
+    println!("  {DIM}Run {RESET}{BLUE}asmlings start{RESET}{DIM} to begin.{RESET}");
 
     Ok(())
 }
