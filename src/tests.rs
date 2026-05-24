@@ -2,17 +2,13 @@ use std::{fs, path::PathBuf};
 
 use tempfile::TempDir;
 
-use super::{
-    Assertion,
-    Exercise,
-    MemAddr,
-    name_to_reg,
-    parse_labels,
-    // integration helpers (need NASM + Unicorn):
-    // assemble, run_exercise,
-    parse_u64,
-    read_current_index,
-    write_current_index,
+// Import from the specific modules created during the refactor
+use crate::exercise::{Assertion, Exercise, MemAddr};
+use crate::{
+    assembler::{assemble, parse_labels},
+    emulator::{name_to_reg, run_exercise},
+    state::{read_current_index, write_current_index},
+    utils::parse_u64,
 };
 
 #[test]
@@ -364,8 +360,6 @@ fn exercise_load_flags_uppercased() {
 #[test]
 #[ignore]
 fn integration_mov_ax_passes() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -383,8 +377,6 @@ mov ax, 5
 #[test]
 #[ignore]
 fn integration_mov_ax_fails_wrong_value() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -403,8 +395,6 @@ mov ax, 5
 #[test]
 #[ignore]
 fn integration_zero_flag_after_sub() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -422,8 +412,6 @@ sub ax, 3
 #[test]
 #[ignore]
 fn integration_memory_write_literal() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -441,8 +429,6 @@ mov [0x0200], al
 #[test]
 #[ignore]
 fn integration_memory_write_label() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -462,8 +448,6 @@ result: db 0
 #[test]
 #[ignore]
 fn integration_multiple_assertions_all_pass() {
-    use super::run_exercise;
-
     let dir = TempDir::new().unwrap();
     let src = "\
 BITS 16
@@ -484,8 +468,6 @@ cmp ax, bx   ; sets flags, ZF=0 because 1 != 2
 #[test]
 #[ignore]
 fn integration_nasm_syntax_error_returns_err() {
-    use super::assemble;
-
     let dir = TempDir::new().unwrap();
     let p = write_asm(&dir, "bad_syntax", "BITS 16\nORG 0x0100\nthis is not valid asm\n");
     assert!(assemble(&p).is_err(), "Bad ASM should produce an error from NASM");
