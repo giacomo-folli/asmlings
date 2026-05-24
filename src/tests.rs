@@ -233,9 +233,11 @@ fn exercise_load_memory_assertion_literal_addr() {
     let ex = Exercise::load(p).unwrap();
     assert_eq!(ex.assertions.len(), 1);
     match &ex.assertions[0] {
-        Assertion::Memory { addr: MemAddr::Literal(addr), expected } => {
+        // Add `size` to the destructuring
+        Assertion::Memory { addr: MemAddr::Literal(addr), expected, size } => {
             assert_eq!(*addr, 0x200);
             assert_eq!(*expected, 0xFF);
+            assert_eq!(*size, 1); // "0xFF" is 4 characters long, so size is 1 byte
         },
         other => panic!("Expected Memory(Literal) assertion, got {:?}", other),
     }
@@ -249,14 +251,15 @@ fn exercise_load_memory_assertion_label_addr() {
     let ex = Exercise::load(p).unwrap();
     assert_eq!(ex.assertions.len(), 1);
     match &ex.assertions[0] {
-        Assertion::Memory { addr: MemAddr::Label(label), expected } => {
+        // Add `size` to the destructuring
+        Assertion::Memory { addr: MemAddr::Label(label), expected, size } => {
             assert_eq!(label, "result");
             assert_eq!(*expected, 0x42);
+            assert_eq!(*size, 1); // "0x42" is 4 characters long, so size is 1 byte
         },
         other => panic!("Expected Memory(Label) assertion, got {:?}", other),
     }
 }
-
 #[test]
 fn exercise_load_flag_assertion() {
     let dir = TempDir::new().unwrap();
