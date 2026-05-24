@@ -24,6 +24,9 @@ libc = "0.2"
 notify = "6.1"
 rust-embed = "8.3"
 
+[dev-dependencies]
+tempfile = "3.10"
+
 [package.metadata.binstall]
 pkg-url = "{ repo }/releases/download/v{ version }/asmlings-{ target }{ binary-ext }"
 bin-dir = "{ bin }{ binary-ext }"
