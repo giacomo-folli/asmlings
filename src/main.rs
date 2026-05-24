@@ -269,13 +269,14 @@ struct AssembleOutput {
 
 fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
     let out_path = asm_path.with_extension("bin");
-    let map_path = asm_path.with_extension("map");
+    let lst_path = asm_path.with_extension("lst");
 
     let output_res = Command::new("nasm")
         .args([
             "-f",
             "bin",
-            &format!("-Map={}", map_path.to_str().unwrap()),
+            "-l",
+            lst_path.to_str().unwrap(),
             "-o",
             out_path.to_str().unwrap(),
             asm_path.to_str().unwrap(),
@@ -304,60 +305,53 @@ fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
     }
 
     let code = fs::read(&out_path)?;
-    let labels = parse_labels(&map_path);
+    let labels = parse_labels(&lst_path);
 
     let _ = fs::remove_file(&out_path);
-    let _ = fs::remove_file(&map_path);
+    let _ = fs::remove_file(&lst_path);
 
     Ok(AssembleOutput { code, labels })
 }
 
-/// Parse a NASM map file and return a map of label → absolute address.
-///
-/// The map file (generated with `-Map=file`) contains a symbol table section
-/// that looks like:
-///
-/// ```
-/// -- Symbols ------------------------------------------------------------
-///
-/// ---- Section .text ----------------------------------------------------
-///
-/// Real              Virtual           Name
-/// 00000100          00000100          _start
-///
-/// ---- Section .data ----------------------------------------------------
-///
-/// Real              Virtual           Name
-/// 0000010A          0000010A          result
-/// ```
-///
-/// We scan every line in the file looking for lines with 2 hex columns and a
-/// name — those are the symbol entries. This approach is section-agnostic and
-/// gives us the correct absolute (real) address for every label.
-fn parse_labels(map_path: &Path) -> HashMap<String, u64> {
+/// Parse a NASM listing file (.lst) to extract absolute real addresses for each
+/// label.
+fn parse_labels(lst_path: &Path) -> HashMap<String, u64> {
     let mut map = HashMap::new();
-    let Ok(text) = fs::read_to_string(map_path) else { return map };
+    let Ok(text) = fs::read_to_string(lst_path) else { return map };
 
     for line in text.lines() {
-        let tokens: Vec<&str> = line.split_whitespace().collect();
+        // Strip out comments early so we don't accidentally match a label inside one
+        let line_no_comment = line.split(';').next().unwrap_or(line);
 
-        // Symbol lines have exactly 3 tokens: real_addr  virtual_addr  name
-        if tokens.len() != 3 {
+        // split_whitespace coalesces consecutive spaces properly
+        let tokens: Vec<&str> = line_no_comment.split_whitespace().collect();
+
+        // NASM listing format columns usually look like:
+        // [lineno] [offset] [hex_bytes...] [source]
+        if tokens.len() < 3 {
             continue;
         }
 
-        // Both address columns must be plain hex (no "0x" prefix in map files)
-        let Ok(addr) = u64::from_str_radix(tokens[0], 16) else { continue };
-        let Ok(_) = u64::from_str_radix(tokens[1], 16) else { continue };
+        // The offset is always the 2nd token in a populated NASM listing line
+        let Ok(addr) = u64::from_str_radix(tokens[1], 16) else { continue };
 
-        let name = tokens[2];
+        // Search the rest of the line (starting from token index 2) for a colon
+        for (i, token) in tokens.iter().enumerate().skip(2) {
+            if let Some(colon_idx) = token.find(':') {
+                let mut label = &token[..colon_idx];
 
-        // Skip the header row ("Real", "Virtual", "Name")
-        if name == "Name" {
-            continue;
+                // Allow spaces right before colons (e.g., `my_label : dw`)
+                if label.is_empty() && i > 0 {
+                    label = tokens[i - 1];
+                }
+
+                let label = label.trim_start_matches('%');
+                if !label.is_empty() && label.chars().all(|c| c.is_alphanumeric() || c == '_') {
+                    map.insert(label.to_string(), addr);
+                }
+                break;
+            }
         }
-
-        map.insert(name.to_string(), addr);
     }
 
     map
@@ -667,3 +661,6 @@ fn parse_u64(s: &str) -> Option<u64> {
         s.parse::<u64>().ok()
     }
 }
+
+#[cfg(test)]
+mod tests;
