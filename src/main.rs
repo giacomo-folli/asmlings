@@ -172,8 +172,6 @@ fn write_current_index(state_path: &Path, index: usize) -> anyhow::Result<()> {
 // ── Assertion
 // ─────────────────────────────────────────────────────────────────
 
-/// A memory address that is either already resolved to a number, or a label
-/// name that must be resolved after assembly (via the NASM listing file).
 #[derive(Debug, Clone)]
 enum MemAddr {
     Literal(u64),
@@ -183,7 +181,7 @@ enum MemAddr {
 #[derive(Debug, Clone)]
 enum Assertion {
     Register { reg: String, expected: u16 },
-    Memory { addr: MemAddr, expected: u8 },
+    Memory { addr: MemAddr, expected: u16, size: usize },
     Flag { flag: String, expected: bool },
 }
 
@@ -227,22 +225,28 @@ impl Exercise {
                     let parts: Vec<&str> = reg_rest.splitn(3, ' ').collect();
                     if parts.len() == 3 && parts[1] == "==" {
                         let reg = parts[0].to_uppercase();
-                        // Skip lines that don't parse cleanly — they're prose, not assertions
                         let Some(raw) = parse_u64(parts[2]) else { continue };
                         assertions.push(Assertion::Register { reg, expected: raw as u16 });
                     }
                 } else if let Some(mem_rest) = rest.strip_prefix("ASSERT_MEM:").map(str::trim) {
                     let parts: Vec<&str> = mem_rest.splitn(3, ' ').collect();
                     if parts.len() == 3 && parts[1] == "==" {
-                        // The address may be a hex literal OR a label name
                         let addr = if let Some(n) = parse_u64(parts[0]) {
                             MemAddr::Literal(n)
                         } else {
                             MemAddr::Label(parts[0].to_string())
                         };
-                        // Skip lines whose value doesn't parse — they're prose
-                        let Some(raw) = parse_u64(parts[2]) else { continue };
-                        assertions.push(Assertion::Memory { addr, expected: raw as u8 });
+
+                        let raw_str = parts[2].trim();
+                        // Dynamically determine test size based on string definition length
+                        let size = if raw_str.starts_with("0x") || raw_str.starts_with("0X") {
+                            if raw_str.len() > 4 { 2 } else { 1 }
+                        } else {
+                            if parse_u64(raw_str).unwrap_or(0) > 255 { 2 } else { 1 }
+                        };
+
+                        let Some(raw) = parse_u64(raw_str) else { continue };
+                        assertions.push(Assertion::Memory { addr, expected: raw as u16, size });
                     }
                 } else if let Some(flag_rest) = rest.strip_prefix("ASSERT_FLAG:").map(str::trim) {
                     let parts: Vec<&str> = flag_rest.splitn(3, ' ').collect();
@@ -268,8 +272,32 @@ struct AssembleOutput {
 }
 
 fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
+    let src = fs::read_to_string(asm_path)?;
+
+    // We enforce org 0x0100 so the absolute addresses match Unicorn's LOAD_ADDR.
+    // We also COMMENT OUT `section` directives so NASM evaluates the file as a
+    // single continuous block. This guarantees the `.lst` file offsets are
+    // absolute and correctly match the generated flat binary layout.
+    let mut modified_src = String::from("org 0x0100\n");
+    for line in src.lines() {
+        let trimmed = line.trim().to_lowercase();
+        if trimmed.starts_with("section ")
+            || trimmed.starts_with("segment ")
+            || trimmed.starts_with("org ")
+        {
+            modified_src.push_str("; ");
+            modified_src.push_str(line);
+        } else {
+            modified_src.push_str(line);
+        }
+        modified_src.push('\n');
+    }
+
+    let temp_asm_path = asm_path.with_extension("temp.asm");
     let out_path = asm_path.with_extension("bin");
     let lst_path = asm_path.with_extension("lst");
+
+    fs::write(&temp_asm_path, modified_src)?;
 
     let output_res = Command::new("nasm")
         .args([
@@ -279,9 +307,11 @@ fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
             lst_path.to_str().unwrap(),
             "-o",
             out_path.to_str().unwrap(),
-            asm_path.to_str().unwrap(),
+            temp_asm_path.to_str().unwrap(),
         ])
         .output();
+
+    let _ = fs::remove_file(&temp_asm_path);
 
     let output = match output_res {
         Ok(o) => o,
@@ -313,36 +343,27 @@ fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
     Ok(AssembleOutput { code, labels })
 }
 
-/// Parse a NASM listing file (.lst) to extract absolute real addresses for each
-/// label.
+/// Parse a NASM listing file to extract absolute real addresses for each label.
 fn parse_labels(lst_path: &Path) -> HashMap<String, u64> {
     let mut map = HashMap::new();
     let Ok(text) = fs::read_to_string(lst_path) else { return map };
 
     for line in text.lines() {
-        // Strip out comments early so we don't accidentally match a label inside one
         let line_no_comment = line.split(';').next().unwrap_or(line);
-
-        // split_whitespace coalesces consecutive spaces properly
         let tokens: Vec<&str> = line_no_comment.split_whitespace().collect();
 
-        // NASM listing format columns usually look like:
-        // [lineno] [offset] [hex_bytes...] [source]
         if tokens.len() < 3 {
             continue;
         }
 
-        // The offset is always the 2nd token in a populated NASM listing line
         let Ok(addr) = u64::from_str_radix(tokens[1], 16) else { continue };
 
-        // Search the rest of the line (starting from token index 2) for a colon
-        for (i, token) in tokens.iter().enumerate().skip(2) {
-            if let Some(colon_idx) = token.find(':') {
-                let mut label = &token[..colon_idx];
+        for idx in 2..tokens.len() {
+            if let Some(colon_idx) = tokens[idx].find(':') {
+                let mut label = &tokens[idx][..colon_idx];
 
-                // Allow spaces right before colons (e.g., `my_label : dw`)
-                if label.is_empty() && i > 0 {
-                    label = tokens[i - 1];
+                if label.is_empty() && idx > 2 {
+                    label = tokens[idx - 1];
                 }
 
                 let label = label.trim_start_matches('%');
@@ -414,8 +435,7 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
                 }
             },
 
-            Assertion::Memory { addr, expected } => {
-                // Resolve label → address if needed
+            Assertion::Memory { addr, expected, size } => {
                 let resolved = match addr {
                     MemAddr::Literal(n) => *n,
                     MemAddr::Label(label) => *labels.get(label.as_str()).ok_or_else(|| {
@@ -427,21 +447,24 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
                     })?,
                 };
 
-                let mut buf = [0u8; 1];
+                let mut buf = vec![0u8; *size];
                 emu.mem_read(resolved, &mut buf)?;
-                let val = buf[0];
+
+                let val =
+                    if *size == 2 { u16::from_le_bytes([buf[0], buf[1]]) } else { buf[0] as u16 };
 
                 let name_str = match addr {
                     MemAddr::Literal(n) => format!("[0x{:04X}]", n),
                     MemAddr::Label(l) => format!("[{}]", l),
                 };
 
-                AssertionResult {
-                    passed: val == *expected,
-                    name_str,
-                    expected_str: format!("0x{:02X}", expected),
-                    actual_str: format!("0x{:02X}", val),
-                }
+                let (expected_str, actual_str) = if *size == 2 {
+                    (format!("0x{:04X}", expected), format!("0x{:04X}", val))
+                } else {
+                    (format!("0x{:02X}", expected), format!("0x{:02X}", val))
+                };
+
+                AssertionResult { passed: val == *expected, name_str, expected_str, actual_str }
             },
 
             Assertion::Flag { flag, expected } => {
