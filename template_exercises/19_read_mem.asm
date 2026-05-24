@@ -6,6 +6,10 @@
 ; Load it into AX.
 ;
 ; ASSERT_REG: AX == 0xDEAD
+
+; DO NOT CHANGE THIS LINE
+org 0x0100
+
 global _start
 section .text
 _start:

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     fs,
     path::{Path, PathBuf},
     process::Command,
@@ -65,20 +66,14 @@ fn init_mode() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Create the user's local exercises/ directory
     fs::create_dir_all(&dir)?;
-
-    // Initialize the state tracker to 0
     write_current_index(&dir.join(STATE_FILE), 0)?;
 
-    // Extract all embedded files
     let mut count = 0;
     for file_path in TemplateExercises::iter() {
         let file = TemplateExercises::get(&file_path).expect("Failed to read embedded file");
         let out_path = dir.join(file_path.as_ref());
 
-        // Ensure any subdirectories exist (in case you organize exercises into folders
-        // later)
         if let Some(parent) = out_path.parent() {
             fs::create_dir_all(parent)?;
         }
@@ -109,7 +104,6 @@ fn term_width() -> usize {
             ypix: u16,
         }
         let mut ws = Winsize { rows: 0, cols: 0, xpix: 0, ypix: 0 };
-        // TIOCGWINSZ = 0x5413 on Linux, 0x40087468 on macOS
         #[cfg(target_os = "macos")]
         const TIOCGWINSZ: u64 = 0x40087468;
         #[cfg(not(target_os = "macos"))]
@@ -120,19 +114,17 @@ fn term_width() -> usize {
             return ws.cols as usize;
         }
     }
-    80 // fallback
+    80
 }
 
 // ── Drawing helpers
 // ───────────────────────────────────────────────────────────
 
-/// Print a full-width horizontal rule using `ch`, with 2-space left margin.
 fn rule(ch: &str, w: usize) {
     let inner = w.saturating_sub(2);
     println!("  {DIM}{}{RESET}", ch.repeat(inner));
 }
 
-/// Build a full-width banner box.
 fn banner(w: usize, version: &str) {
     let inner = w.saturating_sub(4);
     let title = "A S M L I N G S";
@@ -153,7 +145,6 @@ fn banner(w: usize, version: &str) {
     println!();
 }
 
-/// Progress bar that fills the terminal width.
 fn progress_bar(current: usize, total: usize, w: usize) {
     let label = format!("  {} / {}  ", current, total);
     let bar_w = w.saturating_sub(2 + label.len());
@@ -181,10 +172,18 @@ fn write_current_index(state_path: &Path, index: usize) -> anyhow::Result<()> {
 // ── Assertion
 // ─────────────────────────────────────────────────────────────────
 
+/// A memory address that is either already resolved to a number, or a label
+/// name that must be resolved after assembly (via the NASM listing file).
+#[derive(Debug, Clone)]
+enum MemAddr {
+    Literal(u64),
+    Label(String),
+}
+
 #[derive(Debug, Clone)]
 enum Assertion {
     Register { reg: String, expected: u16 },
-    Memory { addr: u64, expected: u8 },
+    Memory { addr: MemAddr, expected: u8 },
     Flag { flag: String, expected: bool },
 }
 
@@ -218,7 +217,6 @@ impl Exercise {
         for line in src.lines() {
             let line = line.trim();
 
-            // Sentinel Check
             if line == "; I AM NOT DONE" {
                 is_done = false;
                 continue;
@@ -229,21 +227,22 @@ impl Exercise {
                     let parts: Vec<&str> = reg_rest.splitn(3, ' ').collect();
                     if parts.len() == 3 && parts[1] == "==" {
                         let reg = parts[0].to_uppercase();
-                        let expected = parse_u64(parts[2]).ok_or_else(|| {
-                            anyhow::anyhow!("Cannot parse assertion value: {}", parts[2])
-                        })? as u16;
-                        assertions.push(Assertion::Register { reg, expected });
+                        // Skip lines that don't parse cleanly — they're prose, not assertions
+                        let Some(raw) = parse_u64(parts[2]) else { continue };
+                        assertions.push(Assertion::Register { reg, expected: raw as u16 });
                     }
                 } else if let Some(mem_rest) = rest.strip_prefix("ASSERT_MEM:").map(str::trim) {
                     let parts: Vec<&str> = mem_rest.splitn(3, ' ').collect();
                     if parts.len() == 3 && parts[1] == "==" {
-                        let addr = parse_u64(parts[0]).ok_or_else(|| {
-                            anyhow::anyhow!("Cannot parse memory address: {}", parts[0])
-                        })?;
-                        let expected = parse_u64(parts[2]).ok_or_else(|| {
-                            anyhow::anyhow!("Cannot parse memory value: {}", parts[2])
-                        })? as u8;
-                        assertions.push(Assertion::Memory { addr, expected });
+                        // The address may be a hex literal OR a label name
+                        let addr = if let Some(n) = parse_u64(parts[0]) {
+                            MemAddr::Literal(n)
+                        } else {
+                            MemAddr::Label(parts[0].to_string())
+                        };
+                        // Skip lines whose value doesn't parse — they're prose
+                        let Some(raw) = parse_u64(parts[2]) else { continue };
+                        assertions.push(Assertion::Memory { addr, expected: raw as u8 });
                     }
                 } else if let Some(flag_rest) = rest.strip_prefix("ASSERT_FLAG:").map(str::trim) {
                     let parts: Vec<&str> = flag_rest.splitn(3, ' ').collect();
@@ -260,15 +259,27 @@ impl Exercise {
     }
 }
 
-// ── Assembly + Emulation
-// ──────────────────────────────────────────────────────
+// ── Assembly + label resolution
+// ───────────────────────────────────────────────
 
-fn assemble(asm_path: &Path) -> anyhow::Result<Vec<u8>> {
+struct AssembleOutput {
+    code:   Vec<u8>,
+    labels: HashMap<String, u64>,
+}
+
+fn assemble(asm_path: &Path) -> anyhow::Result<AssembleOutput> {
     let out_path = asm_path.with_extension("bin");
+    let map_path = asm_path.with_extension("map");
 
-    // Attempt to execute NASM, catching the specific "Not Found" error
     let output_res = Command::new("nasm")
-        .args(["-f", "bin", "-o", out_path.to_str().unwrap(), asm_path.to_str().unwrap()])
+        .args([
+            "-f",
+            "bin",
+            &format!("-Map={}", map_path.to_str().unwrap()),
+            "-o",
+            out_path.to_str().unwrap(),
+            asm_path.to_str().unwrap(),
+        ])
         .output();
 
     let output = match output_res {
@@ -292,9 +303,64 @@ fn assemble(asm_path: &Path) -> anyhow::Result<Vec<u8>> {
         anyhow::bail!("NASM syntax error:\n{}", stderr);
     }
 
-    let bytes = fs::read(&out_path)?;
+    let code = fs::read(&out_path)?;
+    let labels = parse_labels(&map_path);
+
     let _ = fs::remove_file(&out_path);
-    Ok(bytes)
+    let _ = fs::remove_file(&map_path);
+
+    Ok(AssembleOutput { code, labels })
+}
+
+/// Parse a NASM map file and return a map of label → absolute address.
+///
+/// The map file (generated with `-Map=file`) contains a symbol table section
+/// that looks like:
+///
+/// ```
+/// -- Symbols ------------------------------------------------------------
+///
+/// ---- Section .text ----------------------------------------------------
+///
+/// Real              Virtual           Name
+/// 00000100          00000100          _start
+///
+/// ---- Section .data ----------------------------------------------------
+///
+/// Real              Virtual           Name
+/// 0000010A          0000010A          result
+/// ```
+///
+/// We scan every line in the file looking for lines with 2 hex columns and a
+/// name — those are the symbol entries. This approach is section-agnostic and
+/// gives us the correct absolute (real) address for every label.
+fn parse_labels(map_path: &Path) -> HashMap<String, u64> {
+    let mut map = HashMap::new();
+    let Ok(text) = fs::read_to_string(map_path) else { return map };
+
+    for line in text.lines() {
+        let tokens: Vec<&str> = line.split_whitespace().collect();
+
+        // Symbol lines have exactly 3 tokens: real_addr  virtual_addr  name
+        if tokens.len() != 3 {
+            continue;
+        }
+
+        // Both address columns must be plain hex (no "0x" prefix in map files)
+        let Ok(addr) = u64::from_str_radix(tokens[0], 16) else { continue };
+        let Ok(_) = u64::from_str_radix(tokens[1], 16) else { continue };
+
+        let name = tokens[2];
+
+        // Skip the header row ("Real", "Virtual", "Name")
+        if name == "Name" {
+            continue;
+        }
+
+        map.insert(name.to_string(), addr);
+    }
+
+    map
 }
 
 fn name_to_reg(name: &str) -> anyhow::Result<RegisterX86> {
@@ -320,7 +386,7 @@ fn name_to_reg(name: &str) -> anyhow::Result<RegisterX86> {
 }
 
 fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
-    let code = assemble(&ex.path)?;
+    let AssembleOutput { code, labels } = assemble(&ex.path)?;
 
     let mut emu = Unicorn::new(Arch::X86, Mode::MODE_16)
         .map_err(|e| anyhow::anyhow!("Unicorn init failed: {:?}", e))?;
@@ -335,13 +401,12 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
 
     let end_addr = LOAD_ADDR + code.len() as u64;
 
-    // Timeout: 0 (infinite time)
-    // Count: 10_000 instructions max (Infinite Loop Protection)
     if let Err(e) = emu.emu_start(LOAD_ADDR, end_addr, 0, 10_000) {
         anyhow::bail!("Emulation failed or timed out (infinite loop?): {:?}", e);
     }
 
     let mut results = Vec::new();
+
     for assertion in &ex.assertions {
         let res = match assertion {
             Assertion::Register { reg, expected } => {
@@ -354,17 +419,37 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
                     actual_str:   format!("0x{:04X}", val),
                 }
             },
+
             Assertion::Memory { addr, expected } => {
+                // Resolve label → address if needed
+                let resolved = match addr {
+                    MemAddr::Literal(n) => *n,
+                    MemAddr::Label(label) => *labels.get(label.as_str()).ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "Label '{}' not found in assembled output. Make sure the label is \
+                             defined in the exercise.",
+                            label
+                        )
+                    })?,
+                };
+
                 let mut buf = [0u8; 1];
-                emu.mem_read(*addr, &mut buf)?;
+                emu.mem_read(resolved, &mut buf)?;
                 let val = buf[0];
+
+                let name_str = match addr {
+                    MemAddr::Literal(n) => format!("[0x{:04X}]", n),
+                    MemAddr::Label(l) => format!("[{}]", l),
+                };
+
                 AssertionResult {
-                    passed:       val == *expected,
-                    name_str:     format!("[0x{:04X}]", addr),
+                    passed: val == *expected,
+                    name_str,
                     expected_str: format!("0x{:02X}", expected),
-                    actual_str:   format!("0x{:02X}", val),
+                    actual_str: format!("0x{:02X}", val),
                 }
             },
+
             Assertion::Flag { flag, expected } => {
                 let eflags = emu.reg_read(RegisterX86::EFLAGS)? as u32;
                 let bit = match flag.as_str() {
@@ -380,13 +465,15 @@ fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
                 AssertionResult {
                     passed:       val == *expected,
                     name_str:     flag.clone(),
-                    expected_str: if *expected { "1".to_string() } else { "0".to_string() },
-                    actual_str:   if val { "1".to_string() } else { "0".to_string() },
+                    expected_str: if *expected { "1".into() } else { "0".into() },
+                    actual_str:   if val { "1".into() } else { "0".into() },
                 }
             },
         };
+
         results.push(res);
     }
+
     Ok(results)
 }
 
@@ -418,7 +505,6 @@ fn run_workflow() -> anyhow::Result<()> {
     let total = paths.len();
     let current = read_current_index(&state_path);
 
-    // ── Banner ────────────────────────────────────────────────────────────────
     banner(w, env!("CARGO_PKG_VERSION"));
 
     if current >= total {
@@ -433,7 +519,6 @@ fn run_workflow() -> anyhow::Result<()> {
     let ex = Exercise::load(paths[current].clone())?;
     let display_name = ex.name.replace('_', " ");
 
-    // ── Exercise header ───────────────────────────────────────────────────────
     println!("  {DIM}exercise {}/{total}{RESET}  {BOLD}{display_name}{RESET}", current + 1);
     rule("─", w);
     println!();
@@ -444,7 +529,6 @@ fn run_workflow() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // ── Run & report ──────────────────────────────────────────────────────────
     match run_exercise(&ex) {
         Err(e) => {
             println!("  {RED}✗  error:{RESET} {e}");
@@ -455,12 +539,12 @@ fn run_workflow() -> anyhow::Result<()> {
             for res in &results {
                 if res.passed {
                     println!(
-                        "  {GREEN}✓{RESET}  {BLUE}{:<8}{RESET}  {DIM}=={RESET}  {GREEN}{}{RESET}",
+                        "  {GREEN}✓{RESET}  {BLUE}{:<12}{RESET}  {DIM}=={RESET}  {GREEN}{}{RESET}",
                         res.name_str, res.expected_str
                     );
                 } else {
                     println!(
-                        "  {RED}✗{RESET}  {BLUE}{:<8}{RESET}  {DIM}expected{RESET} \
+                        "  {RED}✗{RESET}  {BLUE}{:<12}{RESET}  {DIM}expected{RESET} \
                          {GREEN}{:<8}{RESET} {DIM}got{RESET} {RED}{}{RESET}",
                         res.name_str, res.expected_str, res.actual_str
                     );
@@ -506,7 +590,6 @@ fn run_workflow() -> anyhow::Result<()> {
         },
     }
 
-    // ── Progress ──────────────────────────────────────────────────────────────
     println!();
     rule("─", w);
     progress_bar(current, total, w);
@@ -515,7 +598,7 @@ fn run_workflow() -> anyhow::Result<()> {
     Ok(())
 }
 
-// ── Watch Mode
+// ── Watch mode
 // ────────────────────────────────────────────────────────────────
 
 fn watch_mode() -> anyhow::Result<()> {
