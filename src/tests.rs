@@ -129,11 +129,21 @@ fn parse_labels_empty_file() {
 #[test]
 fn parse_labels_typical_map() {
     let dir = TempDir::new().unwrap();
-    let lst = "\
-     1 00000100 B80500            _start: mov ax, 5
-     4 0000010A 00                result: db 0
+    let map_content = "\
+- NASM Map file ---------------------------------------------------------------
+
+Source file:  test.asm
+Output file:  test.bin
+
+-- Symbols --------------------------------------------------------------------
+
+---- Section .text ------------------------------------------------------------
+
+Real              Virtual           Name
+             100               100  _start
+             10A               10A  result
 ";
-    let p = write_map(&dir, lst);
+    let p = write_map(&dir, map_content);
     let labels = parse_labels(&p);
     assert_eq!(labels.get("_start"), Some(&0x100));
     assert_eq!(labels.get("result"), Some(&0x10A));
@@ -142,9 +152,11 @@ fn parse_labels_typical_map() {
 #[test]
 fn parse_labels_skips_header_row() {
     let dir = TempDir::new().unwrap();
-    // No header in listing format — just verify a normal label parses
-    let lst = "     1 00000200 90                myLabel: nop\n";
-    let p = write_map(&dir, lst);
+    let map_content = "\
+Real              Virtual           Name
+             200               200  myLabel
+";
+    let p = write_map(&dir, map_content);
     let labels = parse_labels(&p);
     assert_eq!(labels.get("myLabel"), Some(&0x200));
 }
@@ -152,12 +164,12 @@ fn parse_labels_skips_header_row() {
 #[test]
 fn parse_labels_ignores_malformed_lines() {
     let dir = TempDir::new().unwrap();
-    let lst = "\
+    let map_content = "\
 just one token
-     1 ZZZZZZZZ 90                badHex: nop
-     1 00000100 90                goodLabel: nop
+ZZZZZZZZ ZZZZZZZZ badHex
+             100               100  goodLabel
 ";
-    let p = write_map(&dir, lst);
+    let p = write_map(&dir, map_content);
     let labels = parse_labels(&p);
     assert_eq!(labels.get("goodLabel"), Some(&0x100));
     assert!(!labels.contains_key("badHex"));
