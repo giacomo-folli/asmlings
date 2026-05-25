@@ -207,3 +207,58 @@ pub fn watch_mode() -> anyhow::Result<()> {
         }
     }
 }
+
+pub fn debug_exercise() -> anyhow::Result<()> {
+    let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
+        .into_iter()
+        .find(|p| p.is_dir())
+        .ok_or_else(|| anyhow::anyhow!("Could not find exercises/ directory"))?;
+
+    let state_path = exercises_dir.join(STATE_FILE);
+
+    let mut paths: Vec<PathBuf> = fs::read_dir(&exercises_dir)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("asm"))
+        .collect();
+    paths.sort();
+
+    if paths.is_empty() {
+        anyhow::bail!("No .asm exercises found in {}", exercises_dir.display());
+    }
+
+    let current = read_current_index(&state_path);
+    let total = paths.len();
+
+    if current >= total {
+        println!("  {GREEN_BG} COMPLETE {RESET}  All exercises already done, nothing to debug.");
+        return Ok(());
+    }
+
+    let ex = Exercise::load(paths[current].clone())?;
+    let out_path = exercises_dir.join(format!("{}.bin", ex.name));
+
+    let assembled = crate::assembler::assemble(&paths[current])?;
+    fs::write(&out_path, &assembled.code)?;
+
+    println!("  {GREEN}✓{RESET}  {BOLD}Dumped binary:{RESET} {BLUE}{}{RESET}", out_path.display());
+    println!("  {DIM}size     {RESET}{} bytes", assembled.code.len());
+
+    if !assembled.labels.is_empty() {
+        println!("  {DIM}labels:{RESET}");
+        let mut labels: Vec<_> = assembled.labels.iter().collect();
+        labels.sort_by_key(|(_, addr)| *addr);
+        for (name, addr) in labels {
+            println!("    {BLUE}{name}{RESET}  {DIM}@ 0x{addr:04x}{RESET}");
+        }
+    }
+
+    println!();
+    println!("  {DIM}ndisasm -b 16 -o 0x100 {}{RESET}", out_path.display());
+    println!(
+        "  {DIM}objdump -b binary -m i8086 -M intel -D --adjust-vma=0x100 {}{RESET}",
+        out_path.display()
+    );
+
+    Ok(())
+}

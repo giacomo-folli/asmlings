@@ -29,6 +29,9 @@ enum Commands {
     Start,
     /// Runs the current exercise once (without watching)
     Run,
+    /// Dumps the assembled binary of the current exercise for debugger
+    /// inspection
+    Debug,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -38,5 +41,6 @@ fn main() -> anyhow::Result<()> {
         Commands::Init => init_mode(),
         Commands::Start => watch_mode(),
         Commands::Run => run_workflow(),
+        Commands::Debug => commands::debug_exercise(),
     }
 }
