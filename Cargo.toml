@@ -1,7 +1,7 @@
 [package]
 authors = ["Giacomo Folli <giacomofolli@proton.me>"]
 name = "asmlings"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2024"
 description = "An educational sandbox for Intel 8086 assembly"
 readme = "README.md"
