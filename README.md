@@ -101,4 +101,4 @@ To complete an exercise, you must do two things:
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! If you'd like to help build or improve Asmlings, check out our [Contributing Guide](CONTRIBUTING.md) for details on setting up your local development environment and troubleshooting common compilation issues.
