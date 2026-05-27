@@ -38,6 +38,8 @@ Asmlings is written in Rust and relies on the [Unicorn Emulator](https://www.uni
 
 ### 🍎 macOS Setup
 
+> **Note**: Cannot verify as I do not have access to a macOS machine
+
 1. **Rust**: Install via [rustup.rs](https://rustup.rs/).
 2. **Command Line Tools**:
    ```bash
@@ -61,10 +63,10 @@ Asmlings is written in Rust and relies on the [Unicorn Emulator](https://www.uni
 ### 🐧 Linux Setup (Ubuntu/Debian)
 
 1. **Rust**: Install via [rustup.rs](https://rustup.rs/).
-2. **Build Essentials, CMake, & LLVM/Clang**:
+2. **Build Essentials, CMake, pkg-config, & LLVM/Clang**:
    ```bash
    sudo apt update
-   sudo apt install build-essential cmake clang libclang-dev
+   sudo apt install build-essential cmake clang libclang-dev pkg-config libglib2.0-dev
    ```
 3. **Environment Variables**:
    On most Linux distributions, `libclang` is placed in standard search paths. If you encounter errors, point to your system's `libclang` directory manually:
@@ -108,3 +110,14 @@ unicorn-engine = { version = "2.1.5", default-features = false, features = ["arc
     ```
   * **macOS**: `brew install ninja`
   * **Linux**: `sudo apt install ninja-build`
+
+### ❌ `fatal error: config-host.h: No such file or directory` or `ERROR: pkg-config binary 'pkg-config' not found`
+* **Cause**: `pkg-config` is missing from your system. This prevents the Unicorn engine's configuration script from running successfully and generating crucial build headers like `config-host.h`.
+* **Fix**: Install `pkg-config` (and GLib development files) and perform a clean rebuild:
+  * **Linux/WSL (Ubuntu/Debian)**:
+    ```bash
+    sudo apt update
+    sudo apt install pkg-config libglib2.0-dev
+    ```
+  * **macOS**: `brew install pkg-config`
+  * **Clean & Rebuild**: Run `cargo clean` and then `cargo build`.
