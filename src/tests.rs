@@ -484,3 +484,215 @@ fn integration_nasm_syntax_error_returns_err() {
     let p = write_asm(&dir, "bad_syntax", "BITS 16\nORG 0x0100\nthis is not valid asm\n");
     assert!(assemble(&p).is_err(), "Bad ASM should produce an error from NASM");
 }
+
+// ── NEW COMPREHENSIVE TESTS ──
+
+// 1. Parser Edge Case Tests (Unit Tests)
+
+#[test]
+fn parser_assertion_unknown_operator() {
+    let dir = TempDir::new().unwrap();
+    let src = "; ASSERT_REG: AX != 0x0005\n; ASSERT_MEM: 0x0200 >= 0x10\n; ASSERT_FLAG: ZF < 1\n";
+    let p = write_asm(&dir, "invalid_ops", src);
+    let ex = Exercise::load(p).unwrap();
+    assert!(ex.assertions.is_empty(), "Unsupported operators must be ignored");
+}
+
+#[test]
+fn parser_assertion_malformed_value() {
+    let dir = TempDir::new().unwrap();
+    let src = "; ASSERT_REG: AX == abc\n; ASSERT_MEM: 0x0200 == xyz\n";
+    let p = write_asm(&dir, "malformed_vals", src);
+    let ex = Exercise::load(p).unwrap();
+    assert!(ex.assertions.is_empty(), "Malformed integer values must be ignored");
+}
+
+#[test]
+fn parser_assertion_multiple_spaces() {
+    let dir = TempDir::new().unwrap();
+    // The current parser splits on ' ' with splitn(3, ' ').
+    // Multiple spaces will make parts[1] be "" rather than "==".
+    let src = "; ASSERT_REG: AX  ==  5\n";
+    let p = write_asm(&dir, "multi_space", src);
+    let ex = Exercise::load(p).unwrap();
+    assert!(ex.assertions.is_empty(), "Multiple spaces currently cause the assertion to be skipped");
+}
+
+#[test]
+fn parser_assertion_case_sensitivity() {
+    let dir = TempDir::new().unwrap();
+    let src = "; ASSERT_REG: ax == 0x12\n; ASSERT_FLAG: zf == 1\n; ASSERT_MEM: myLabel == 0x34\n";
+    let p = write_asm(&dir, "casing", src);
+    let ex = Exercise::load(p).unwrap();
+    assert_eq!(ex.assertions.len(), 3);
+    
+    // Register ax should be uppercased to AX
+    match &ex.assertions[0] {
+        Assertion::Register { reg, expected } => {
+            assert_eq!(reg, "AX");
+            assert_eq!(*expected, 0x12);
+        }
+        other => panic!("Expected Register, got {:?}", other),
+    }
+    // Flag zf should be uppercased to ZF
+    match &ex.assertions[1] {
+        Assertion::Flag { flag, expected } => {
+            assert_eq!(flag, "ZF");
+            assert!(*expected);
+        }
+        other => panic!("Expected Flag, got {:?}", other),
+    }
+    // Label myLabel should preserve its casing
+    match &ex.assertions[2] {
+        Assertion::Memory { addr: MemAddr::Label(label), expected, .. } => {
+            assert_eq!(label, "myLabel");
+            assert_eq!(*expected, 0x34);
+        }
+        other => panic!("Expected Memory(Label), got {:?}", other),
+    }
+}
+
+#[test]
+fn parser_assertion_no_marker_means_done() {
+    let dir = TempDir::new().unwrap();
+    let src = "mov ax, 1\n";
+    let p = write_asm(&dir, "no_marker", src);
+    let ex = Exercise::load(p).unwrap();
+    assert!(ex.is_done, "Exercise should be considered done when no I AM NOT DONE marker is present");
+}
+
+// 2. Emulator Runtime and Error Tests (Integration Tests - #[ignore])
+
+#[test]
+#[ignore]
+fn integration_emulator_timeout_infinite_loop() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+; ASSERT_REG: AX == 0x1111
+loop_start:
+    jmp loop_start
+";
+    let p = write_asm(&dir, "inf_loop", src);
+    let ex = Exercise::load(p).unwrap();
+    let res = run_exercise(&ex).unwrap();
+    // Under the existing implementation, emu_start runs for 10,000 instructions
+    // and returns Ok(()). But the assertion will fail because AX remains 0.
+    assert_eq!(res.len(), 1);
+    assert!(!res[0].passed, "Assertion should fail because AX never becomes 0x1111");
+}
+
+#[test]
+#[ignore]
+fn integration_emulator_out_of_bounds_memory() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+    mov ax, 0x1000
+    mov ds, ax
+    mov byte [0], 0x42
+";
+    let p = write_asm(&dir, "oob_mem", src);
+    let ex = Exercise::load(p).unwrap();
+    let res = run_exercise(&ex);
+    assert!(res.is_err(), "Should return error due to unmapped/out-of-bounds memory access");
+}
+
+#[test]
+#[ignore]
+fn integration_emulator_unknown_register() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+; ASSERT_REG: EAX == 0x0005
+mov ax, 5
+";
+    let p = write_asm(&dir, "unknown_reg", src);
+    let ex = Exercise::load(p).unwrap();
+    let res = run_exercise(&ex);
+    assert!(res.is_err(), "Should return error for unsupported/unknown register");
+    assert!(res.unwrap_err().to_string().contains("Unknown register"));
+}
+
+#[test]
+#[ignore]
+fn integration_emulator_unknown_flag() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+; ASSERT_FLAG: XX == 1
+nop
+";
+    let p = write_asm(&dir, "unknown_flag", src);
+    let ex = Exercise::load(p).unwrap();
+    let res = run_exercise(&ex);
+    assert!(res.is_err(), "Should return error for unsupported/unknown flag");
+    assert!(res.unwrap_err().to_string().contains("Unknown flag"));
+}
+
+#[test]
+#[ignore]
+fn integration_emulator_stack_manipulation() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+; ASSERT_REG: SP == 0xFFF0
+; ASSERT_MEM: 0xFFEE == 0x1234
+; ASSERT_REG: BX == 0x1234
+mov ax, 0x1234
+push ax
+pop bx
+";
+    let p = write_asm(&dir, "stack_test", src);
+    let ex = Exercise::load(p).unwrap();
+    let results = run_exercise(&ex).unwrap();
+    assert_eq!(results.len(), 3);
+    assert!(results.iter().all(|r| r.passed), "Stack asserts should pass");
+}
+
+// 3. State and Utility Tests (Unit Tests)
+
+#[test]
+fn parse_u64_overflow() {
+    assert_eq!(parse_u64("18446744073709551616"), None);
+    assert_eq!(parse_u64("0x10000000000000000"), None);
+}
+
+#[test]
+fn parse_u64_invalid_prefixes() {
+    assert_eq!(parse_u64("0x"), None);
+    assert_eq!(parse_u64("0X"), None);
+    assert_eq!(parse_u64("0xG"), None);
+    assert_eq!(parse_u64("0x12G"), None);
+}
+
+#[test]
+fn parse_labels_duplicate_labels() {
+    let dir = TempDir::new().unwrap();
+    let map_content = "\
+Real              Virtual           Name
+             100               100  myLabel
+             200               200  myLabel
+";
+    let p = write_map(&dir, map_content);
+    let labels = parse_labels(&p);
+    assert_eq!(labels.get("myLabel"), Some(&0x200));
+}
+
+#[test]
+fn parse_labels_extra_columns() {
+    let dir = TempDir::new().unwrap();
+    let map_content = "\
+Real              Virtual           Name            Extra
+             100               100  myLabel         something
+";
+    let p = write_map(&dir, map_content);
+    let labels = parse_labels(&p);
+    assert!(!labels.contains_key("myLabel"), "Rows with extra columns must be ignored");
+}
+
