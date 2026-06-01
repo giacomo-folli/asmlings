@@ -8,6 +8,7 @@ mod ui;
 mod utils;
 mod harness;
 mod exercise_tests;
+mod hints;
 
 #[cfg(test)]
 mod tests;

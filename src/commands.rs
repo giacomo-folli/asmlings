@@ -175,12 +175,87 @@ pub fn run_workflow() -> anyhow::Result<()> {
     Ok(())
 }
 
+enum WatchEvent {
+    File(Result<notify::Event, notify::Error>),
+    Input(String),
+}
+
+fn get_current_exercise() -> anyhow::Result<Option<Exercise>> {
+    let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
+        .into_iter()
+        .find(|p| p.is_dir())
+        .ok_or_else(|| anyhow::anyhow!("Could not find exercises/ directory"))?;
+
+    let state_path = exercises_dir.join(STATE_FILE);
+
+    let mut paths: Vec<PathBuf> = fs::read_dir(&exercises_dir)?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("asm"))
+        .collect();
+    paths.sort();
+
+    if paths.is_empty() {
+        return Ok(None);
+    }
+
+    let current = read_current_index(&state_path);
+    if current >= paths.len() {
+        return Ok(None);
+    }
+
+    let ex = Exercise::load(paths[current].clone())?;
+    Ok(Some(ex))
+}
+
+#[cfg(unix)]
+fn read_single_char() -> Option<u8> {
+    use std::os::unix::io::AsRawFd;
+    let fd = std::io::stdin().as_raw_fd();
+    unsafe {
+        let mut termios: libc::termios = std::mem::zeroed();
+        if libc::tcgetattr(fd, &mut termios) != 0 {
+            return None;
+        }
+        let original_termios = termios;
+
+        termios.c_lflag &= !(libc::ICANON | libc::ECHO);
+        termios.c_cc[libc::VMIN] = 1;
+        termios.c_cc[libc::VTIME] = 0;
+
+        if libc::tcsetattr(fd, libc::TCSADRAIN, &termios) != 0 {
+            return None;
+        }
+
+        let mut buf = [0u8; 1];
+        let bytes_read = libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1);
+
+        let _ = libc::tcsetattr(fd, libc::TCSADRAIN, &original_termios);
+
+        if bytes_read == 1 {
+            Some(buf[0])
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn read_single_char() -> Option<u8> {
+    None
+}
+
 pub fn watch_mode() -> anyhow::Result<()> {
     print!("\x1B[2J\x1B[1;1H");
     let _ = run_workflow();
 
     let (tx, rx) = channel();
-    let mut watcher = notify::recommended_watcher(tx)?;
+
+    // Spawn file watcher
+    let tx_watcher = tx.clone();
+    let mut watcher = notify::recommended_watcher(move |res| {
+        let _ = tx_watcher.send(WatchEvent::File(res));
+    })?;
 
     let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
         .into_iter()
@@ -189,13 +264,49 @@ pub fn watch_mode() -> anyhow::Result<()> {
 
     watcher.watch(&exercises_dir, RecursiveMode::Recursive)?;
 
-    println!("  {DIM}Watching for file changes in {}...{RESET}", exercises_dir.display());
+    println!(
+        "  {DIM}Watching for file changes in {}... (Press Ctrl+C to stop, h for hint){RESET}",
+        exercises_dir.display()
+    );
+
+    // Spawn stdin reader thread
+    let tx_stdin = tx.clone();
+    std::thread::spawn(move || {
+        loop {
+            if let Some(ch) = read_single_char() {
+                let input_char = (ch as char).to_lowercase().to_string();
+                if tx_stdin.send(WatchEvent::Input(input_char)).is_err() {
+                    break;
+                }
+            } else {
+                // Fallback to normal read_line if raw mode is not supported or fails
+                let stdin = std::io::stdin();
+                let mut line = String::new();
+                loop {
+                    match stdin.read_line(&mut line) {
+                        Ok(0) => break, // EOF reached
+                        Ok(_) => {
+                            let input = line.trim().to_lowercase();
+                            line.clear();
+                            if !input.is_empty() {
+                                if tx_stdin.send(WatchEvent::Input(input)).is_err() {
+                                    break;
+                                }
+                            }
+                        }
+                        Err(_) => break,
+                    }
+                }
+                break;
+            }
+        }
+    });
 
     let mut last_run = Instant::now();
 
     loop {
         match rx.recv() {
-            Ok(Ok(event)) => {
+            Ok(WatchEvent::File(Ok(event))) => {
                 if matches!(event.kind, EventKind::Modify(_)) {
                     if last_run.elapsed() > Duration::from_millis(200) {
                         print!("\x1B[2J\x1B[1;1H");
@@ -203,13 +314,36 @@ pub fn watch_mode() -> anyhow::Result<()> {
                             println!("  {RED}Fatal error running workflow:{RESET} {}", e);
                         }
                         println!(
-                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop){RESET}"
+                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
                         );
                         last_run = Instant::now();
                     }
                 }
             },
-            Ok(Err(e)) => println!("  {RED}Watch error:{RESET} {:?}", e),
+            Ok(WatchEvent::File(Err(e))) => println!("  {RED}Watch error:{RESET} {:?}", e),
+            Ok(WatchEvent::Input(input)) => {
+                if input == "h" || input == "hint" {
+                    if let Ok(Some(ex)) = get_current_exercise() {
+                        if let Some(hint) = crate::hints::get_hint(&ex.name) {
+                            println!();
+                            println!("  {YELLOW}💡 Hint for {BOLD}{}{RESET}{YELLOW}:{RESET}", ex.name);
+                            println!("  {DIM}──────────────────────────────────────────{RESET}");
+                            for line in hint.lines() {
+                                println!("  {YELLOW}{line}{RESET}");
+                            }
+                            println!("  {DIM}──────────────────────────────────────────{RESET}");
+                            println!();
+                        } else {
+                            println!("\n  {YELLOW}⚠  No hint available for {}{RESET}\n", ex.name);
+                        }
+                    } else {
+                        println!("\n  {YELLOW}⚠  Could not load current exercise to show hint.{RESET}\n");
+                    }
+                    println!(
+                        "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
+                    );
+                }
+            },
             Err(e) => anyhow::bail!("Channel receive error: {:?}", e),
         }
     }
