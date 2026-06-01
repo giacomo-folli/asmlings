@@ -12,9 +12,7 @@
 ;
 ; Expected result: 0x0002_0000
 ;   AX == 0x0000, DX == 0x0002
-;
-; ASSERT_REG: AX == 0x0000
-; ASSERT_REG: DX == 0x0002
+
 global _start
 section .text
 _start:

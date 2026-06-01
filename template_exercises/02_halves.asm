@@ -3,8 +3,6 @@
 ; AX is made of AH (high byte) and AL (low byte).
 ;
 ; Set AH to 0xAB and AL to 0xCD so that the full AX register equals 0xABCD.
-;
-; ASSERT_REG: AX == 0xABCD
 
 global _start
 section .text

@@ -4,8 +4,7 @@
 ;
 ; A subroutine `double` is provided below — it doubles AX.
 ; Load AX with 0x0009, call `double`, and the result in AX should be 0x0012.
-;
-; ASSERT_REG: AX == 0x0012
+
 global _start
 section .text
 _start:

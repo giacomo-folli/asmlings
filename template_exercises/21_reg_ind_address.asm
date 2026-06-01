@@ -7,8 +7,7 @@
 ;     mov bx, treasure
 ; Then load the VALUE at that address into AX using indirect addressing.
 ; AX should equal 0xF00D.
-;
-; ASSERT_REG: AX == 0xF00D
+
 global _start
 section .text
 _start:

@@ -4,8 +4,7 @@
 ;
 ; Load BX with 0x0080, then shift it right by 3.
 ; BX should equal 0x0010.
-;
-; ASSERT_REG: BX == 0x0010
+
 global _start
 section .text
 _start:

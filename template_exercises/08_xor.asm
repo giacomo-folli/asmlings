@@ -3,9 +3,7 @@
 ; This is a classic 8086 idiom — shorter and faster than "mov ax, 0".
 ;
 ; Zero out both CX and DX without using the MOV instruction.
-;
-; ASSERT_REG: CX == 0x0000
-; ASSERT_REG: DX == 0x0000
+
 global _start
 section .text
 _start:

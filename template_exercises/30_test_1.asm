@@ -14,8 +14,7 @@
 ; Test case B: AX = 0x0007 (+7  signed) → result 0x0007
 ;
 ; The harness tests case A.  Make sure your logic handles both conceptually.
-;
-; ASSERT_REG: AX == 0x000A
+
 global _start
 section .text
 _start:

@@ -7,8 +7,7 @@
 ; Use TEST to check bit 0 (the LSB).
 ; Because bit 0 IS set, jump to `bit_set` and place 0x0001 in BX.
 ; If the bit were clear you would jump to `bit_clear` and put 0x0000 in BX.
-;
-; ASSERT_REG: BX == 0x0001
+
 global _start
 section .text
 _start:

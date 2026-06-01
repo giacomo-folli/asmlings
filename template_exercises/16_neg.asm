@@ -4,8 +4,7 @@
 ;
 ; Load AX with 0x0005. Negate it.
 ; In 16-bit two's complement, -5 is 0xFFFB.
-;
-; ASSERT_REG: AX == 0xFFFB
+
 global _start
 section .text
 _start:

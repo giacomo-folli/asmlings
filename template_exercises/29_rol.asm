@@ -6,8 +6,7 @@
 ; Rotate left by 1.
 ; The MSB (1) wraps to the LSB position, and every other bit shifts left.
 ; AX should equal 0x0003 (binary: 0000 0000 0000 0011).
-;
-; ASSERT_REG: AX == 0x0003
+
 global _start
 section .text
 _start:

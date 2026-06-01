@@ -5,8 +5,7 @@
 ;
 ; Push 0xCAFE onto the stack (via AX), then pop it into BX.
 ; BX should equal 0xCAFE.
-;
-; ASSERT_REG: BX == 0xCAFE
+
 global _start
 section .text
 _start:

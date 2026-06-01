@@ -5,9 +5,7 @@
 ; The variable `result` starts at 0x0000.
 ; Compute 0x0007 + 0x0008 in AX, then store AX into `result`.
 ; AX and the word at `result` should both equal 0x000F.
-;
-; ASSERT_REG: AX == 0x000F
-; ASSERT_MEM: result == 0x000F
+
 global _start
 section .text
 _start:

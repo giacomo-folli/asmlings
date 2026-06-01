@@ -8,10 +8,7 @@
 ; 3. POPA will restore AX, BX, CX to their original values.
 ;
 ; After POPA: AX == 0x0001, BX == 0x0002, CX == 0x0003.
-;
-; ASSERT_REG: AX == 0x0001
-; ASSERT_REG: BX == 0x0002
-; ASSERT_REG: CX == 0x0003
+
 global _start
 section .text
 _start:

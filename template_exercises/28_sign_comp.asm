@@ -7,8 +7,7 @@
 ; Compare AX to 0x0000.
 ; Because -2 < 0 (signed), jump to `is_negative` and set BX = 0xFFFF.
 ; Otherwise jump to `is_positive` and set BX = 0x0001.
-;
-; ASSERT_REG: BX == 0xFFFF
+
 global _start
 section .text
 _start:

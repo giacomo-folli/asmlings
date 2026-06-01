@@ -5,9 +5,7 @@
 ; AX starts as 0x1111 and BX starts as 0x2222.
 ; Use XCHG to swap them.
 ; AX should equal 0x2222 and BX should equal 0x1111.
-;
-; ASSERT_REG: AX == 0x2222
-; ASSERT_REG: BX == 0x1111
+
 global _start
 section .text
 _start:

@@ -4,8 +4,6 @@
 ;
 ; A word (0xDEAD) is already stored in the data section below.
 ; Load it into AX.
-;
-; ASSERT_REG: AX == 0xDEAD
 
 ; DO NOT CHANGE THIS LINE
 org 0x0100

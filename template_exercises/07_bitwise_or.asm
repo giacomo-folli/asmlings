@@ -3,8 +3,7 @@
 ;;
 ; Start with BX = 0x0F00 and mask it
 ; BX should equal 0x0FF0.
-;
-; ASSERT_REG: BX == 0x0FF0
+
 global _start
 section .text
 _start:

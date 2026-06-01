@@ -5,8 +5,7 @@
 ; Start with AX = 0x000A.
 ; Increment AX three times, then decrement it once.
 ; AX should equal 0x000C.
-;
-; ASSERT_REG: AX == 0x000C
+
 global _start
 section .text
 _start:

@@ -15,8 +15,7 @@
 ;   • Repeat 16 times with LOOP.
 ;
 ; Alternative: use TEST + JZ to check bit 0 each round, then SHR by 1.
-;
-; ASSERT_REG: BX == 0x0009
+
 global _start
 section .text
 _start:

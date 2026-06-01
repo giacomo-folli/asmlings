@@ -7,9 +7,7 @@
 ; DX (remainder) should be 0x0009 (9).
 ;
 ; Hint: zero out DX before dividing (DX:AX is the dividend).
-;
-; ASSERT_REG: AX == 0x0009
-; ASSERT_REG: DX == 0x0009
+
 global _start
 section .text
 _start:

@@ -7,8 +7,7 @@
 ; Load each element into AX one at a time (using [si], then advance SI),
 ; accumulating a running sum in BX.
 ; BX should equal 0x0006.
-;
-; ASSERT_REG: BX == 0x0006
+
 global _start
 section .text
 _start:

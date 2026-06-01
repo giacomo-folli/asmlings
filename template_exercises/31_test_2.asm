@@ -9,8 +9,7 @@
 ;   • Use CX as a counter (5 iterations).
 ;   • Keep the running maximum in AX.
 ;   • Use CMP + JA (unsigned "jump if above") to update the maximum.
-;
-; ASSERT_REG: AX == 0x003E
+
 global _start
 section .text
 _start:

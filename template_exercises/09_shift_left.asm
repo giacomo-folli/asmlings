@@ -4,8 +4,7 @@
 ;
 ; Load AX with 0x0003, then shift it left by 4.
 ; AX should equal 0x0030.
-;
-; ASSERT_REG: AX == 0x0030
+
 global _start
 section .text
 _start:
