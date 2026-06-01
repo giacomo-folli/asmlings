@@ -7,6 +7,7 @@ mod state;
 mod ui;
 mod utils;
 mod harness;
+mod exercise_tests;
 
 #[cfg(test)]
 mod tests;
