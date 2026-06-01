@@ -301,8 +301,8 @@ pub fn watch_mode() -> anyhow::Result<()> {
             }
         }
     });
-
     let mut last_run = Instant::now();
+    let mut hint_shown = false;
 
     loop {
         match rx.recv() {
@@ -317,31 +317,35 @@ pub fn watch_mode() -> anyhow::Result<()> {
                             "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
                         );
                         last_run = Instant::now();
+                        hint_shown = false; // Reset hint state on file modification / exercise change
                     }
                 }
             },
             Ok(WatchEvent::File(Err(e))) => println!("  {RED}Watch error:{RESET} {:?}", e),
             Ok(WatchEvent::Input(input)) => {
                 if input == "h" || input == "hint" {
-                    if let Ok(Some(ex)) = get_current_exercise() {
-                        if let Some(hint) = crate::hints::get_hint(&ex.name) {
-                            println!();
-                            println!("  {YELLOW}💡 Hint for {BOLD}{}{RESET}{YELLOW}:{RESET}", ex.name);
-                            println!("  {DIM}──────────────────────────────────────────{RESET}");
-                            for line in hint.lines() {
-                                println!("  {YELLOW}{line}{RESET}");
+                    if !hint_shown {
+                        if let Ok(Some(ex)) = get_current_exercise() {
+                            if let Some(hint) = crate::hints::get_hint(&ex.name) {
+                                println!();
+                                println!("  {YELLOW}💡 Hint for {BOLD}{}{RESET}{YELLOW}:{RESET}", ex.name);
+                                println!("  {DIM}──────────────────────────────────────────{RESET}");
+                                for line in hint.lines() {
+                                    println!("  {YELLOW}{line}{RESET}");
+                                }
+                                println!("  {DIM}──────────────────────────────────────────{RESET}");
+                                println!();
+                                hint_shown = true;
+                            } else {
+                                println!("\n  {YELLOW}⚠  No hint available for {}{RESET}\n", ex.name);
                             }
-                            println!("  {DIM}──────────────────────────────────────────{RESET}");
-                            println!();
                         } else {
-                            println!("\n  {YELLOW}⚠  No hint available for {}{RESET}\n", ex.name);
+                            println!("\n  {YELLOW}⚠  Could not load current exercise to show hint.{RESET}\n");
                         }
-                    } else {
-                        println!("\n  {YELLOW}⚠  Could not load current exercise to show hint.{RESET}\n");
+                        println!(
+                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
+                        );
                     }
-                    println!(
-                        "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
-                    );
                 }
             },
             Err(e) => anyhow::bail!("Channel receive error: {:?}", e),
