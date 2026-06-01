@@ -94,7 +94,7 @@ pub fn run_workflow() -> anyhow::Result<()> {
     rule("─", w);
     println!();
 
-    if ex.assertions.is_empty() {
+    if ex.assertions.is_empty() && crate::harness::get_test_suite(&ex.name).is_none() {
         println!("  {YELLOW}⚠  no assertions found in this exercise{RESET}");
         println!();
         return Ok(());
@@ -151,10 +151,17 @@ pub fn run_workflow() -> anyhow::Result<()> {
                     }
                 }
             } else {
-                println!(
-                    "  {RED_BG} FAIL {RESET}  fix the assertions above and save the file to \
-                     re-run{RESET}"
-                );
+                if !ex.is_done {
+                    println!(
+                        "  {YELLOW_BG} IN PROGRESS {RESET}  {BOLD}fix the assertions above and save the file to \
+                         re-run{RESET}"
+                    );
+                } else {
+                    println!(
+                        "  {RED_BG} FAIL {RESET}  fix the assertions above and save the file to \
+                         re-run{RESET}"
+                    );
+                }
                 println!("  {DIM}file     {RESET}{BLUE}exercises/{}.asm{RESET}", ex.name);
             }
         },
