@@ -696,3 +696,105 @@ Real              Virtual           Name            Extra
     assert!(!labels.contains_key("myLabel"), "Rows with extra columns must be ignored");
 }
 
+// 4. Programmatic Harness Tests
+#[test]
+fn harness_get_test_suite_known_exercises() {
+    let suite_01 = crate::harness::get_test_suite("01_bare_metal");
+    assert!(suite_01.is_some());
+    let s = suite_01.unwrap();
+    assert_eq!(s.name, "01_bare_metal");
+    assert!(s.target_label.is_none());
+    assert_eq!(s.cases.len(), 1);
+
+    let suite_30 = crate::harness::get_test_suite("30_test_1");
+    assert!(suite_30.is_some());
+    let s = suite_30.unwrap();
+    assert_eq!(s.name, "30_test_1");
+    assert_eq!(s.target_label, Some("abs_val"));
+    assert_eq!(s.cases.len(), 4);
+}
+
+#[test]
+fn harness_get_test_suite_unknown_exercise() {
+    assert!(crate::harness::get_test_suite("unknown_exercise_name").is_none());
+}
+
+#[test]
+#[ignore]
+fn integration_programmatic_01_bare_metal_passes() {
+    let dir = TempDir::new().unwrap();
+    let src = "\
+BITS 16
+ORG 0x0100
+global _start
+_start:
+    mov ax, 0x1337
+";
+    // We name the file "01_bare_metal" to trigger the programmatic suite
+    let p = write_asm(&dir, "01_bare_metal", src);
+    let ex = Exercise::load(p).unwrap();
+    let results = run_exercise(&ex).unwrap();
+    assert_eq!(results.len(), 1);
+    assert!(results[0].passed, "AX should equal 0x1337 under programmatic check");
+    assert!(results[0].name_str.contains("Check AX"));
+}
+
+#[test]
+#[ignore]
+fn integration_programmatic_30_test_1_fails_cheat() {
+    let dir = TempDir::new().unwrap();
+    // Cheat implementation: just load 10 into AX, ignoring the input
+    let src = "\
+BITS 16
+ORG 0x0100
+global _start
+_start:
+    call abs_val
+    hlt
+
+abs_val:
+    mov ax, 10
+    ret
+";
+    let p = write_asm(&dir, "30_test_1", src);
+    let ex = Exercise::load(p).unwrap();
+    let results = run_exercise(&ex).unwrap();
+    // There are 4 test cases (Neg 10, Pos 7, Zero 0, Neg 1)
+    // Positive 7 input should fail because the cheat always returns 10!
+    assert_eq!(results.len(), 4);
+    
+    let pos_7_passed = results.iter()
+        .find(|r| r.name_str.contains("Pos Input (7)"))
+        .map(|r| r.passed)
+        .unwrap_or(false);
+        
+    assert!(!pos_7_passed, "Cheat implementation should fail for positive input 7");
+}
+
+#[test]
+#[ignore]
+fn integration_programmatic_30_test_1_passes_correct() {
+    let dir = TempDir::new().unwrap();
+    // Correct absolute value implementation using jump/neg
+    let src = "\
+BITS 16
+ORG 0x0100
+global _start
+_start:
+    call abs_val
+    hlt
+
+abs_val:
+    cmp ax, 0
+    jge .done
+    neg ax
+.done:
+    ret
+";
+    let p = write_asm(&dir, "30_test_1", src);
+    let ex = Exercise::load(p).unwrap();
+    let results = run_exercise(&ex).unwrap();
+    assert_eq!(results.len(), 4);
+    assert!(results.iter().all(|r| r.passed), "Correct absolute value implementation must pass all programmatic tests");
+}
+
