@@ -798,3 +798,99 @@ abs_val:
     assert!(results.iter().all(|r| r.passed), "Correct absolute value implementation must pass all programmatic tests");
 }
 
+#[test]
+fn test_init_creates_new_dir() {
+    let dir = TempDir::new().unwrap();
+    let exercises_path = dir.path().join("exercises");
+    
+    // Ensure directory does not exist initially
+    assert!(!exercises_path.exists());
+    
+    crate::commands::init_mode_in_path(exercises_path.clone(), false).unwrap();
+    
+    // Ensure directory was created
+    assert!(exercises_path.exists());
+    
+    // Ensure files were extracted
+    let mut files: Vec<_> = fs::read_dir(&exercises_path).unwrap()
+        .filter_map(|e| e.ok())
+        .map(|e| e.file_name())
+        .collect();
+    files.sort();
+    
+    assert!(files.len() > 0);
+    assert!(files.contains(&std::ffi::OsString::from("01_bare_metal.asm")));
+    
+    // Ensure state file was created and contains 0
+    let state_file = exercises_path.join(crate::constants::STATE_FILE);
+    assert!(state_file.exists());
+    assert_eq!(read_current_index(&state_file), 0);
+}
+
+#[test]
+fn test_init_updates_existing_dir() {
+    let dir = TempDir::new().unwrap();
+    let exercises_path = dir.path().join("exercises");
+    
+    // 1. Initial creation
+    crate::commands::init_mode_in_path(exercises_path.clone(), false).unwrap();
+    
+    // Write something to state to check it isn't reset
+    let state_file = exercises_path.join(crate::constants::STATE_FILE);
+    write_current_index(&state_file, 5).unwrap();
+    
+    // Modify an existing file's contents
+    let bare_metal_path = exercises_path.join("01_bare_metal.asm");
+    fs::write(&bare_metal_path, "modified content").unwrap();
+    
+    // Delete one file to see if it gets restored
+    let halves_path = exercises_path.join("02_halves.asm");
+    fs::remove_file(&halves_path).unwrap();
+    assert!(!halves_path.exists());
+    
+    // 2. Re-run init
+    crate::commands::init_mode_in_path(exercises_path.clone(), false).unwrap();
+    
+    // Verify state file was NOT overwritten/reset
+    assert_eq!(read_current_index(&state_file), 5);
+    
+    // Verify modified file was NOT overwritten
+    let content = fs::read_to_string(&bare_metal_path).unwrap();
+    assert_eq!(content, "modified content");
+    
+    // Verify deleted file was restored
+    assert!(halves_path.exists());
+    let halves_content = fs::read_to_string(&halves_path).unwrap();
+    assert_ne!(halves_content, "modified content");
+    assert!(halves_content.contains("I AM NOT DONE") || halves_content.len() > 10);
+}
+
+#[test]
+fn test_init_force_overwrites() {
+    let dir = TempDir::new().unwrap();
+    let exercises_path = dir.path().join("exercises");
+    
+    // 1. Initial creation
+    crate::commands::init_mode_in_path(exercises_path.clone(), false).unwrap();
+    
+    // Write something to state to check it gets reset
+    let state_file = exercises_path.join(crate::constants::STATE_FILE);
+    write_current_index(&state_file, 5).unwrap();
+    
+    // Modify an existing file's contents
+    let bare_metal_path = exercises_path.join("01_bare_metal.asm");
+    fs::write(&bare_metal_path, "modified content").unwrap();
+    
+    // 2. Re-run init with force = true
+    crate::commands::init_mode_in_path(exercises_path.clone(), true).unwrap();
+    
+    // Verify state file WAS reset to 0
+    assert_eq!(read_current_index(&state_file), 0);
+    
+    // Verify modified file WAS overwritten back to template
+    let content = fs::read_to_string(&bare_metal_path).unwrap();
+    assert_ne!(content, "modified content");
+    assert!(content.contains("I AM NOT DONE"));
+}
+
+

@@ -71,8 +71,13 @@ Extracts the exercise files and sets up your progress tracker.
 
 ```bash
 asmlings init
-
 ```
+
+* **Updating Exercises:** If you already have an `exercises/` directory and want to pull in new exercises from a new release without losing your progress or overwriting your changes, running `asmlings init` will automatically copy only the missing exercises.
+* **Resetting Progress:** If you want to overwrite all exercises with fresh templates and reset your progress back to the beginning, run:
+  ```bash
+  asmlings init --force
+  ```
 
 ### 2. Start Watch Mode
 
@@ -96,8 +101,10 @@ Each exercise in the `exercises/` directory is a self-contained `.asm` file demo
 
 To complete an exercise, you must do two things:
 
-1. **Satisfy the Assertions:** The exercise contains commented directives like `; ASSERT_REG: AX == 0x1337` or `; ASSERT_MEM: [0x0200] == 0x42`. Your code must result in the exact register, flag, and memory state requested.
-2. **Remove the Sentinel:** Every file contains an `; I AM NOT DONE` comment. Even if your code compiles and passes the assertions, Asmlings will not advance to the next exercise until you manually delete this line. This ensures you deliberately complete the exercise and understand the solution.
+1. **Satisfy the Assertions / Test Cases:** 
+   - **Inline Assertions:** Simple exercises contain commented directives in the `.asm` file itself, such as `; ASSERT_REG: AX == 0x1337` or `; ASSERT_MEM: [0x0200] == 0x42`. Your code must result in the exact register, flag, or memory state requested.
+   - **Programmatic Test Suites:** More complex/advanced exercises (e.g. functions, string processing, vector merging) are verified against dynamic, programmatic test suites with multiple input/setup variations defined under the hood. The CLI will output the results for each test case.
+2. **Remove the Sentinel:** Every file contains an `; I AM NOT DONE` comment. Even if your code compiles and passes all assertions and test cases, Asmlings will not advance to the next exercise until you manually delete this line. This ensures you deliberately complete the exercise and understand the solution.
 
 ## Contributing
 

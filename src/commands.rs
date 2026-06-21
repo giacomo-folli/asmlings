@@ -20,15 +20,44 @@ use crate::{
 #[folder = "template_exercises/"]
 struct TemplateExercises;
 
-pub fn init_mode() -> anyhow::Result<()> {
-    let dir = PathBuf::from(EXERCISES_FOLDER);
+pub fn init_mode(force: bool) -> anyhow::Result<()> {
+    init_mode_in_path(PathBuf::from(EXERCISES_FOLDER), force)
+}
 
-    if dir.exists() {
-        println!("  {YELLOW}⚠  Directory '{}' already exists.{RESET}", EXERCISES_FOLDER);
+pub fn init_mode_in_path(dir: PathBuf, force: bool) -> anyhow::Result<()> {
+    let dir_exists = dir.exists();
+
+    if dir_exists && !force {
+        let mut count = 0;
+        for file_path in TemplateExercises::iter() {
+            let out_path = dir.join(file_path.as_ref());
+            if !out_path.exists() {
+                if let Some(parent) = out_path.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                let file = TemplateExercises::get(&file_path).expect("Failed to read embedded file");
+                fs::write(&out_path, file.data)?;
+                count += 1;
+            }
+        }
+
+        let state_path = dir.join(STATE_FILE);
+        if !state_path.exists() {
+            write_current_index(&state_path, 0)?;
+        }
+
+        if count > 0 {
+            println!("  {GREEN}✓{RESET} {BOLD}Added {count} new exercise(s) to '{}'!{RESET}", dir.display());
+        } else {
+            println!("  {YELLOW}⚠  Directory '{}' already exists and all exercises are present.{RESET}", dir.display());
+            println!("  {DIM}No new exercises were added.{RESET}");
+        }
         return Ok(());
     }
 
-    fs::create_dir_all(&dir)?;
+    if !dir_exists {
+        fs::create_dir_all(&dir)?;
+    }
     write_current_index(&dir.join(STATE_FILE), 0)?;
 
     let mut count = 0;
@@ -44,9 +73,14 @@ pub fn init_mode() -> anyhow::Result<()> {
         count += 1;
     }
 
-    println!("  {GREEN}✓{RESET} {BOLD}Initialized {} folder!{RESET}", EXERCISES_FOLDER);
-    println!("  {DIM}Extracted {} exercises.{RESET}", count);
-    println!("  {DIM}Run {RESET}{BLUE}asmlings start{RESET}{DIM} to begin.{RESET}");
+    if force && dir_exists {
+        println!("  {GREEN}✓{RESET} {BOLD}Force-initialized '{}' folder!{RESET}", dir.display());
+        println!("  {DIM}Overwrote all {} exercises and reset progress.{RESET}", count);
+    } else {
+        println!("  {GREEN}✓{RESET} {BOLD}Initialized {} folder!{RESET}", dir.display());
+        println!("  {DIM}Extracted {} exercises.{RESET}", count);
+        println!("  {DIM}Run {RESET}{BLUE}asmlings start{RESET}{DIM} to begin.{RESET}");
+    }
 
     Ok(())
 }
