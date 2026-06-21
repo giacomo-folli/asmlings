@@ -10,8 +10,8 @@ pub struct ProgrammaticSuite {
 
 pub struct ProgrammaticCase {
     pub name: &'static str,
-    pub setup: fn(&mut Unicorn<'_, ()>) -> anyhow::Result<()>,
-    pub verify: fn(&Unicorn<'_, ()>, &HashMap<String, u64>) -> anyhow::Result<Vec<AssertionResult>>,
+    pub setup: fn(&mut Unicorn<'_, ()>, &std::collections::HashMap<String, u64>) -> anyhow::Result<()>,
+    pub verify: fn(&Unicorn<'_, ()>, &std::collections::HashMap<String, u64>) -> anyhow::Result<Vec<AssertionResult>>,
 }
 
 pub fn set_reg(emu: &mut Unicorn<'_, ()>, reg: RegisterX86, val: u16) -> anyhow::Result<()> {

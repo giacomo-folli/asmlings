@@ -60,7 +60,7 @@ pub fn run_programmatic_suite(
             .map_err(|e| anyhow::anyhow!("reg_write SP failed: {:?}", e))?;
 
         // Run setup callback
-        (case.setup)(&mut emu)?;
+        (case.setup)(&mut emu, &labels)?;
 
         let start_addr;
         let end_addr;

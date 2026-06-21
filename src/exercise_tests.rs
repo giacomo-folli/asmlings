@@ -1,7 +1,8 @@
-use std::sync::OnceLock;
-use std::str::FromStr;
+use std::{str::FromStr, sync::OnceLock};
+
 use unicorn_engine::RegisterX86;
-use crate::harness::{ProgrammaticSuite, ProgrammaticCase, set_reg, check_reg, check_mem};
+
+use crate::harness::{ProgrammaticCase, ProgrammaticSuite, check_mem, check_reg, set_reg};
 
 macro_rules! define_exercises {
     (
@@ -72,7 +73,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x1337),
@@ -87,7 +88,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xABCD),
@@ -102,7 +103,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0015),
@@ -117,7 +118,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check CX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "CX", RegisterX86::CX, 0x0041),
@@ -132,7 +133,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & DX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xBEEF),
@@ -148,7 +149,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x00CD),
@@ -163,7 +164,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0FF0),
@@ -178,7 +179,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check CX & DX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "CX", RegisterX86::CX, 0x0000),
@@ -194,7 +195,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0030),
@@ -209,7 +210,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0xCAFE),
@@ -224,7 +225,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xFF00),
@@ -239,7 +240,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0010),
@@ -254,7 +255,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x000C),
@@ -269,7 +270,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & DX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x001E),
@@ -285,7 +286,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & DX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0009),
@@ -301,7 +302,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xFFFB),
@@ -316,7 +317,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0001),
@@ -331,7 +332,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x000C),
@@ -346,7 +347,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xDEAD),
@@ -361,7 +362,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & Memory result",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, labels| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x000F),
@@ -377,7 +378,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0xF00D),
@@ -392,7 +393,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0006),
@@ -407,7 +408,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0012),
@@ -422,7 +423,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x2222),
@@ -438,7 +439,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX & DX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0000),
@@ -454,7 +455,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0001),
@@ -469,7 +470,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX, BX, CX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0001),
@@ -486,7 +487,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0xFFFF),
@@ -501,7 +502,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x0003),
@@ -516,7 +517,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Neg Input (-10)",
-                setup: |emu| {
+                setup: |emu, _| {
                     set_reg(emu, RegisterX86::AX, 0xFFF6)
                 },
                 verify: |emu, _| {
@@ -527,7 +528,7 @@ define_exercises! {
             },
             ProgrammaticCase {
                 name: "Pos Input (7)",
-                setup: |emu| {
+                setup: |emu, _| {
                     set_reg(emu, RegisterX86::AX, 7)
                 },
                 verify: |emu, _| {
@@ -538,7 +539,7 @@ define_exercises! {
             },
             ProgrammaticCase {
                 name: "Zero Input (0)",
-                setup: |emu| {
+                setup: |emu, _| {
                     set_reg(emu, RegisterX86::AX, 0)
                 },
                 verify: |emu, _| {
@@ -549,7 +550,7 @@ define_exercises! {
             },
             ProgrammaticCase {
                 name: "Neg Input (-1)",
-                setup: |emu| {
+                setup: |emu, _| {
                     set_reg(emu, RegisterX86::AX, 0xFFFF)
                 },
                 verify: |emu, _| {
@@ -566,7 +567,7 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check AX (max)",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "AX", RegisterX86::AX, 0x003E),
@@ -581,11 +582,138 @@ define_exercises! {
         cases: vec![
             ProgrammaticCase {
                 name: "Check BX (popcount)",
-                setup: |_| Ok(()),
+                setup: |_, _| Ok(()),
                 verify: |emu, _| {
                     Ok(vec![
                         check_reg(emu, "BX", RegisterX86::BX, 0x0009),
                     ])
+                }
+            }
+        ]
+    },
+    Ex33MergeVectors = "33_merge_vectors" => merge_vectors_33 {
+        name: "33_merge_vectors",
+        target_label: None,
+        cases: vec![
+            ProgrammaticCase {
+                name: "Check AX (sum of negatives)",
+                setup: |_, _| Ok(()),
+                verify: |emu, _| {
+                    Ok(vec![
+                        check_reg(emu, "AX", RegisterX86::AX, 0xFFF8),
+                    ])
+                }
+            }
+        ]
+    },
+    Ex34RedactString = "34_redact_string" => redact_string_34 {
+        name: "34_redact_string",
+        target_label: None,
+        cases: vec![
+            ProgrammaticCase {
+                name: "Check out_buf ('Hll word!')",
+                setup: |_, _| Ok(()),
+                verify: |emu, labels| {
+                    let mut res = Vec::new();
+                    let expected_str = b"Hll word!\0";
+                    let addr = *labels.get("out_buf").unwrap();
+                    let mut buf = vec![0u8; expected_str.len()];
+                    emu.mem_read(addr, &mut buf).unwrap();
+
+                    let act = String::from_utf8_lossy(&buf).to_string().replace('\0', "\\0");
+                    let exp = String::from_utf8_lossy(expected_str).to_string().replace('\0', "\\0");
+
+                    res.push(crate::exercise::AssertionResult {
+                        passed: buf == expected_str,
+                        name_str: "out_buf".to_string(),
+                        expected_str: exp,
+                        actual_str: act,
+                    });
+                    Ok(res)
+                }
+            }
+        ]
+    },
+    Ex35SpliceStrings = "35_splice_strings" => splice_strings_35 {
+        name: "35_splice_strings",
+        target_label: None,
+        cases: vec![
+            ProgrammaticCase {
+                name: "Check s3 ('ciao aresa')",
+                setup: |_, _| Ok(()),
+                verify: |emu, labels| {
+                    let mut res = Vec::new();
+                    let expected_str = b"ciao aresa\0";
+                    let addr = *labels.get("s3").unwrap();
+                    let mut buf = vec![0u8; expected_str.len()];
+                    emu.mem_read(addr, &mut buf).unwrap();
+
+                    let act = String::from_utf8_lossy(&buf).to_string().replace('\0', "\\0");
+                    let exp = String::from_utf8_lossy(expected_str).to_string().replace('\0', "\\0");
+
+                    res.push(crate::exercise::AssertionResult {
+                        passed: buf == expected_str,
+                        name_str: "s3".to_string(),
+                        expected_str: exp,
+                        actual_str: act,
+                    });
+                    Ok(res)
+                }
+            },
+            ProgrammaticCase {
+                name: "Check s3 ('he!dl')",
+                setup: |emu, labels| {
+                    let s1_addr = *labels.get("s1").unwrap();
+                    let s2_addr = *labels.get("s2").unwrap();
+                    emu.mem_write(s1_addr, b"hello\0").unwrap();
+                    emu.mem_write(s2_addr, b"world!\0").unwrap();
+                    Ok(())
+                },
+                verify: |emu, labels| {
+                    let mut res = Vec::new();
+                    let expected_str = b"he!dl\0";
+                    let addr = *labels.get("s3").unwrap();
+                    let mut buf = vec![0u8; expected_str.len()];
+                    emu.mem_read(addr, &mut buf).unwrap();
+
+                    let act = String::from_utf8_lossy(&buf).to_string().replace('\0', "\\0");
+                    let exp = String::from_utf8_lossy(expected_str).to_string().replace('\0', "\\0");
+
+                    res.push(crate::exercise::AssertionResult {
+                        passed: buf == expected_str,
+                        name_str: "s3".to_string(),
+                        expected_str: exp,
+                        actual_str: act,
+                    });
+                    Ok(res)
+                }
+            },
+            ProgrammaticCase {
+                name: "Check s3 ('12edc')",
+                setup: |emu, labels| {
+                    let s1_addr = *labels.get("s1").unwrap();
+                    let s2_addr = *labels.get("s2").unwrap();
+                    emu.mem_write(s1_addr, b"1234\0").unwrap();
+                    emu.mem_write(s2_addr, b"abcde\0").unwrap();
+                    Ok(())
+                },
+                verify: |emu, labels| {
+                    let mut res = Vec::new();
+                    let expected_str = b"12edc\0";
+                    let addr = *labels.get("s3").unwrap();
+                    let mut buf = vec![0u8; expected_str.len()];
+                    emu.mem_read(addr, &mut buf).unwrap();
+
+                    let act = String::from_utf8_lossy(&buf).to_string().replace('\0', "\\0");
+                    let exp = String::from_utf8_lossy(expected_str).to_string().replace('\0', "\\0");
+
+                    res.push(crate::exercise::AssertionResult {
+                        passed: buf == expected_str,
+                        name_str: "s3".to_string(),
+                        expected_str: exp,
+                        actual_str: act,
+                    });
+                    Ok(res)
                 }
             }
         ]

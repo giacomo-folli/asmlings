@@ -207,6 +207,22 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                  adc bx, 0\n\
                  loop count_loop"
         ),
+        "33_merge_vectors" => Some(
+            "Use two separate index pointers or registers (like SI for vett1 and DI for vett2) and advance them in opposite directions.\n\
+             Keep track of an iteration counter (CX) and use a flag or check the lowest bit of the counter to alternate between sum and difference.\n\
+             Finally, loop through vett3 and use `test ax, ax` or `cmp ax, 0` followed by `jns` to skip positive numbers when summing."
+        ),
+        "34_redact_string" => Some(
+            "Maintain a counter for the current position in the original string. When reading a character, scan the `indici` array to check if the current position is listed.\n\
+             If it is listed, skip writing the character to `out_buf`. If it's not listed, write it and increment the `out_buf` pointer.\n\
+             Don't forget to append the null terminator '\\0' to `out_buf` at the very end!"
+        ),
+        "35_splice_strings" => Some(
+            "Write a helper function `strlen` that takes a string pointer, iterates until it finds 0, and returns the length.\n\
+             For s1, copy the first (len/2) bytes to s3.\n\
+             For s2, start copying from the end of s2 (address + len - 1) backwards, for (len - len/2) bytes.\n\
+             Don't forget to push parameters correctly and use `mov bp, sp` to access them inside `CopiaStringhe`."
+        ),
         _ => None,
     }
 }
