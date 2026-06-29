@@ -280,7 +280,7 @@ fn read_single_char() -> Option<u8> {
 }
 
 pub fn watch_mode() -> anyhow::Result<()> {
-    print!("\x1B[2J\x1B[1;1H");
+    crate::utils::clear_screen();
     let _ = run_workflow();
 
     let (tx, rx) = channel();
@@ -343,7 +343,7 @@ pub fn watch_mode() -> anyhow::Result<()> {
             Ok(WatchEvent::File(Ok(event))) => {
                 if matches!(event.kind, EventKind::Modify(_)) {
                     if last_run.elapsed() > Duration::from_millis(200) {
-                        print!("\x1B[2J\x1B[1;1H");
+                        crate::utils::clear_screen();
                         if let Err(e) = run_workflow() {
                             println!("  {RED}Fatal error running workflow:{RESET} {}", e);
                         }

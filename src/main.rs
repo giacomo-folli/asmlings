@@ -42,6 +42,7 @@ enum Commands {
 }
 
 fn main() -> anyhow::Result<()> {
+    crate::utils::enable_ansi_support();
     let cli = Cli::parse();
 
     match cli.command {
