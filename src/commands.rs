@@ -106,7 +106,7 @@ fn resolve_exercises() -> anyhow::Result<(PathBuf, Vec<PathBuf>, PathBuf)> {
     Ok((exercises_dir, paths, state_path))
 }
 
-pub fn run_workflow() -> anyhow::Result<()> {
+pub fn run_workflow(auto_advance: bool) -> anyhow::Result<()> {
     let w = term_width();
 
     let (exercises_dir, paths, state_path) = resolve_exercises()?;
@@ -164,7 +164,9 @@ pub fn run_workflow() -> anyhow::Result<()> {
 
             if all_passed {
                 println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
-                write_current_index(&state_path, current + 1)?;
+                if auto_advance {
+                    write_current_index(&state_path, current + 1)?;
+                }
 
                 if current + 1 >= total {
                     println!(
@@ -220,29 +222,52 @@ fn get_current_exercise() -> anyhow::Result<Option<Exercise>> {
 }
 
 #[cfg(unix)]
+struct RawModeGuard {
+    fd: libc::c_int,
+    original_termios: libc::termios,
+}
+
+#[cfg(unix)]
+impl RawModeGuard {
+    fn enable() -> Option<Self> {
+        use std::os::unix::io::AsRawFd;
+        let fd = std::io::stdin().as_raw_fd();
+        unsafe {
+            let mut termios: libc::termios = std::mem::zeroed();
+            if libc::tcgetattr(fd, &mut termios) != 0 {
+                return None;
+            }
+            let original_termios = termios;
+
+            termios.c_lflag &= !(libc::ICANON | libc::ECHO);
+            termios.c_cc[libc::VMIN] = 1;
+            termios.c_cc[libc::VTIME] = 0;
+
+            if libc::tcsetattr(fd, libc::TCSADRAIN, &termios) != 0 {
+                return None;
+            }
+
+            Some(RawModeGuard { fd, original_termios })
+        }
+    }
+}
+
+#[cfg(unix)]
+impl Drop for RawModeGuard {
+    fn drop(&mut self) {
+        unsafe {
+            let _ = libc::tcsetattr(self.fd, libc::TCSADRAIN, &self.original_termios);
+        }
+    }
+}
+
+#[cfg(unix)]
 fn read_single_char() -> Option<u8> {
     use std::os::unix::io::AsRawFd;
     let fd = std::io::stdin().as_raw_fd();
     unsafe {
-        let mut termios: libc::termios = std::mem::zeroed();
-        if libc::tcgetattr(fd, &mut termios) != 0 {
-            return None;
-        }
-        let original_termios = termios;
-
-        termios.c_lflag &= !(libc::ICANON | libc::ECHO);
-        termios.c_cc[libc::VMIN] = 1;
-        termios.c_cc[libc::VTIME] = 0;
-
-        if libc::tcsetattr(fd, libc::TCSADRAIN, &termios) != 0 {
-            return None;
-        }
-
         let mut buf = [0u8; 1];
         let bytes_read = libc::read(fd, buf.as_mut_ptr() as *mut libc::c_void, 1);
-
-        let _ = libc::tcsetattr(fd, libc::TCSADRAIN, &original_termios);
-
         if bytes_read == 1 {
             buf.get(0).copied()
         } else {
@@ -257,8 +282,11 @@ fn read_single_char() -> Option<u8> {
 }
 
 pub fn watch_mode() -> anyhow::Result<()> {
+    #[cfg(unix)]
+    let _guard = RawModeGuard::enable();
+
     crate::utils::clear_screen();
-    let _ = run_workflow();
+    let _ = run_workflow(true);
 
     let (tx, rx) = channel();
 
@@ -276,7 +304,7 @@ pub fn watch_mode() -> anyhow::Result<()> {
     watcher.watch(&exercises_dir, RecursiveMode::Recursive)?;
 
     println!(
-        "  {DIM}Watching for file changes in {}... (Press Ctrl+C to stop, h for hint){RESET}",
+        "  {DIM}Watching for file changes in {}... (Press q to quit, h for hint, s to skip, b to go back){RESET}",
         exercises_dir.display()
     );
 
@@ -321,11 +349,11 @@ pub fn watch_mode() -> anyhow::Result<()> {
                 if matches!(event.kind, EventKind::Modify(_)) {
                     if last_run.elapsed() > Duration::from_millis(200) {
                         crate::utils::clear_screen();
-                        if let Err(e) = run_workflow() {
+                        if let Err(e) = run_workflow(true) {
                             println!("  {RED}Fatal error running workflow:{RESET} {}", e);
                         }
                         println!(
-                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
+                            "  {DIM}Watching for file changes... (Press q to quit, h for hint, s to skip, b to go back){RESET}"
                         );
                         last_run = Instant::now();
                         hint_shown = false; // Reset hint state on file modification / exercise change
@@ -354,9 +382,48 @@ pub fn watch_mode() -> anyhow::Result<()> {
                             println!("\n  {YELLOW}⚠  Could not load current exercise to show hint.{RESET}\n");
                         }
                         println!(
-                            "  {DIM}Watching for file changes... (Press Ctrl+C to stop, h for hint){RESET}"
+                            "  {DIM}Watching for file changes... (Press q to quit, h for hint, s to skip, b to go back){RESET}"
                         );
                     }
+                } else if input == "s" || input == "skip" {
+                    if let Ok((_, paths, state_path)) = resolve_exercises() {
+                        let current = read_current_index(&state_path);
+                        if current < paths.len() {
+                            let next_index = current + 1;
+                            if let Ok(()) = write_current_index(&state_path, next_index) {
+                                crate::utils::clear_screen();
+                                if let Err(e) = run_workflow(false) {
+                                    println!("  {RED}Fatal error running workflow:{RESET} {}", e);
+                                }
+                                println!(
+                                    "  {DIM}Watching for file changes... (Press q to quit, h for hint, s to skip, b to go back){RESET}"
+                                );
+                                last_run = Instant::now();
+                                hint_shown = false;
+                            }
+                        }
+                    }
+                } else if input == "b" || input == "back" {
+                    if let Ok((_, _, state_path)) = resolve_exercises() {
+                        let current = read_current_index(&state_path);
+                        if current > 0 {
+                            let prev_index = current - 1;
+                            if let Ok(()) = write_current_index(&state_path, prev_index) {
+                                crate::utils::clear_screen();
+                                if let Err(e) = run_workflow(false) {
+                                    println!("  {RED}Fatal error running workflow:{RESET} {}", e);
+                                }
+                                println!(
+                                    "  {DIM}Watching for file changes... (Press q to quit, h for hint, s to skip, b to go back){RESET}"
+                                );
+                                last_run = Instant::now();
+                                hint_shown = false;
+                            }
+                        }
+                    }
+                } else if input == "q" || input == "quit" {
+                    println!("  {DIM}Bye!{RESET}");
+                    return Ok(());
                 }
             },
             Err(e) => anyhow::bail!("Channel receive error: {:?}", e),

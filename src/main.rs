@@ -48,7 +48,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Init { force } => init_mode(force),
         Commands::Start => watch_mode(),
-        Commands::Run => run_workflow(),
+        Commands::Run => run_workflow(true),
         Commands::Debug => commands::debug_exercise(),
     }
 }

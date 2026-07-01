@@ -463,4 +463,41 @@ fn test_init_force_overwrites() {
     assert!(!extra_file_path.exists());
 }
 
+#[test]
+fn test_navigation_boundaries() {
+    let dir = TempDir::new().unwrap();
+    let state_file = dir.path().join(crate::constants::STATE_FILE);
+
+    // Initial state
+    write_current_index(&state_file, 0).unwrap();
+    
+    // Simulate back behavior on index 0
+    let mut current = read_current_index(&state_file);
+    if current > 0 {
+        current -= 1;
+        write_current_index(&state_file, current).unwrap();
+    }
+    assert_eq!(read_current_index(&state_file), 0);
+
+    // Simulate forward behavior
+    let total_exercises = 3;
+    let mut current = read_current_index(&state_file);
+    if current < total_exercises {
+        current += 1;
+        write_current_index(&state_file, current).unwrap();
+    }
+    assert_eq!(read_current_index(&state_file), 1);
+
+    // Simulate forward to boundary and past it
+    for _ in 0..5 {
+        let mut current = read_current_index(&state_file);
+        if current < total_exercises {
+            current += 1;
+            write_current_index(&state_file, current).unwrap();
+        }
+    }
+    assert_eq!(read_current_index(&state_file), 3);
+}
+
+
 
