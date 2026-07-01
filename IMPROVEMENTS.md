@@ -9,7 +9,6 @@
 
 ## 2. Exercise testing
 
-- **[med / med] Collapse trivial suites with a helper/macro.** ~26 of the 35 suites are a single hardcoded `check_reg` with no `setup` (e.g. `exercise_tests.rs:70-99`), which is why the file is 721 lines. A `simple_reg!(name, REG, expected)` helper (or a compact table) would turn each of those into one line while keeping the programmatic model. Reserve the full `ProgrammaticCase { setup, verify }` form for exercises that actually need setup or multiple cases.
 - **[med / low] Wire up `check_flag` — it's dead code.** `harness.rs:32` carries `#[allow(dead_code)]` because no suite checks flags. Yet the flag-teaching exercises (`17_cmp`, `25_carry_flag`, `28_sign_comp`) verify a register side-effect instead of the flag the lesson is about. Have those suites assert the flag directly via `check_flag`.
 
 ## 3. Exercise suite

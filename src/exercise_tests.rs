@@ -4,6 +4,45 @@ use unicorn_engine::RegisterX86;
 
 use crate::harness::{ProgrammaticCase, ProgrammaticSuite, check_mem, check_reg, set_reg};
 
+macro_rules! simple_reg {
+    ($reg:ident, $val:expr) => {
+        vec![ProgrammaticCase {
+            name: concat!("Check ", stringify!($reg)),
+            setup: |_, _| Ok(()),
+            verify: |emu, _| {
+                Ok(vec![
+                    check_reg(emu, stringify!($reg), RegisterX86::$reg, $val),
+                ])
+            }
+        }]
+    };
+    ($reg1:ident = $val1:expr, $reg2:ident = $val2:expr) => {
+        vec![ProgrammaticCase {
+            name: concat!("Check ", stringify!($reg1), " & ", stringify!($reg2)),
+            setup: |_, _| Ok(()),
+            verify: |emu, _| {
+                Ok(vec![
+                    check_reg(emu, stringify!($reg1), RegisterX86::$reg1, $val1),
+                    check_reg(emu, stringify!($reg2), RegisterX86::$reg2, $val2),
+                ])
+            }
+        }]
+    };
+    ($reg1:ident = $val1:expr, $reg2:ident = $val2:expr, $reg3:ident = $val3:expr) => {
+        vec![ProgrammaticCase {
+            name: concat!("Check ", stringify!($reg1), ", ", stringify!($reg2), ", ", stringify!($reg3)),
+            setup: |_, _| Ok(()),
+            verify: |emu, _| {
+                Ok(vec![
+                    check_reg(emu, stringify!($reg1), RegisterX86::$reg1, $val1),
+                    check_reg(emu, stringify!($reg2), RegisterX86::$reg2, $val2),
+                    check_reg(emu, stringify!($reg3), RegisterX86::$reg3, $val3),
+                ])
+            }
+        }]
+    };
+}
+
 macro_rules! define_exercises {
     (
         $(
@@ -70,291 +109,97 @@ define_exercises! {
     Ex01BareMetal = "01_bare_metal" => bare_metal_01 {
         name: "01_bare_metal",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x1337),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x1337)
     },
     Ex02Halves = "02_halves" => halves_02 {
         name: "02_halves",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xABCD),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xABCD)
     },
     Ex03Addition = "03_addition" => addition_03 {
         name: "03_addition",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0015),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0015)
     },
     Ex04Subtraction = "04_subtraction" => subtraction_04 {
         name: "04_subtraction",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check CX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "CX", RegisterX86::CX, 0x0041),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(CX, 0x0041)
     },
     Ex05RegToReg = "05_reg_to_reg" => reg_to_reg_05 {
         name: "05_reg_to_reg",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX & DX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xBEEF),
-                        check_reg(emu, "DX", RegisterX86::DX, 0xBEEF),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0xBEEF, DX = 0xBEEF)
     },
     Ex06BitwiseAnd = "06_bitwise_and" => bitwise_and_06 {
         name: "06_bitwise_and",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x00CD),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x00CD)
     },
     Ex07BitwiseOr = "07_bitwise_or" => bitwise_or_07 {
         name: "07_bitwise_or",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0FF0),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0FF0)
     },
     Ex08Xor = "08_xor" => xor_08 {
         name: "08_xor",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check CX & DX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "CX", RegisterX86::CX, 0x0000),
-                        check_reg(emu, "DX", RegisterX86::DX, 0x0000),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(CX = 0x0000, DX = 0x0000)
     },
     Ex09ShiftLeft = "09_shift_left" => shift_left_09 {
         name: "09_shift_left",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0030),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x0030)
     },
     Ex10Stack = "10_stack" => stack_10 {
         name: "10_stack",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0xCAFE),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0xCAFE)
     },
     Ex11BitwiseNot = "11_bitwise_not" => bitwise_not_11 {
         name: "11_bitwise_not",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xFF00),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xFF00)
     },
     Ex12ShiftRight = "12_shift_right" => shift_right_12 {
         name: "12_shift_right",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0010),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0010)
     },
     Ex13IncDec = "13_inc_dec" => inc_dec_13 {
         name: "13_inc_dec",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x000C),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x000C)
     },
     Ex14Mul = "14_mul" => mul_14 {
         name: "14_mul",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX & DX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x001E),
-                        check_reg(emu, "DX", RegisterX86::DX, 0x0000),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0x001E, DX = 0x0000)
     },
     Ex15Div = "15_div" => div_15 {
         name: "15_div",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX & DX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0009),
-                        check_reg(emu, "DX", RegisterX86::DX, 0x0009),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0x0009, DX = 0x0009)
     },
     Ex16Neg = "16_neg" => neg_16 {
         name: "16_neg",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xFFFB),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xFFFB)
     },
     Ex17Cmp = "17_cmp" => cmp_17 {
         name: "17_cmp",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0001),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0001)
     },
     Ex18Loop = "18_loop" => loop_18 {
         name: "18_loop",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x000C),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x000C)
     },
     Ex19ReadMem = "19_read_mem" => read_mem_19 {
         name: "19_read_mem",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xDEAD),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xDEAD)
     },
     Ex20WriteMem = "20_write_mem" => write_mem_20 {
         name: "20_write_mem",
@@ -375,141 +220,47 @@ define_exercises! {
     Ex21RegIndAddress = "21_reg_ind_address" => reg_ind_address_21 {
         name: "21_reg_ind_address",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xF00D),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xF00D)
     },
     Ex22SourceIndex = "22_source_index" => source_index_22 {
         name: "22_source_index",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0006),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0006)
     },
     Ex23Subroutines = "23_subroutines" => subroutines_23 {
         name: "23_subroutines",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0012),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x0012)
     },
     Ex24Xchg = "24_xchg" => xchg_24 {
         name: "24_xchg",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX & BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x2222),
-                        check_reg(emu, "BX", RegisterX86::BX, 0x1111),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0x2222, BX = 0x1111)
     },
     Ex25CarryFlag = "25_carry_flag" => carry_flag_25 {
         name: "25_carry_flag",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX & DX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0000),
-                        check_reg(emu, "DX", RegisterX86::DX, 0x0002),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0x0000, DX = 0x0002)
     },
     Ex26BitCeck = "26_bit_check" => bit_ceck_26 {
         name: "26_bit_check",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0001),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0001)
     },
     Ex27PushaPopa = "27_pusha_popa" => pusha_popa_27 {
         name: "27_pusha_popa",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX, BX, CX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0001),
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0002),
-                        check_reg(emu, "CX", RegisterX86::CX, 0x0003),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX = 0x0001, BX = 0x0002, CX = 0x0003)
     },
     Ex28SignComp = "28_sign_comp" => sign_comp_28 {
         name: "28_sign_comp",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0xFFFF),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0xFFFF)
     },
     Ex29Rol = "29_rol" => rol_29 {
         name: "29_rol",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x0003),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x0003)
     },
     Ex30AbsVal = "30_abs_val" => abs_val_30 {
         name: "30_abs_val",
@@ -564,47 +315,17 @@ define_exercises! {
     Ex31Max = "31_max" => max_31 {
         name: "31_max",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX (max)",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0x003E),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0x003E)
     },
     Ex32Popcount = "32_popcount" => popcount_32 {
         name: "32_popcount",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check BX (popcount)",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "BX", RegisterX86::BX, 0x0009),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(BX, 0x0009)
     },
     Ex33MergeVectors = "33_merge_vectors" => merge_vectors_33 {
         name: "33_merge_vectors",
         target_label: None,
-        cases: vec![
-            ProgrammaticCase {
-                name: "Check AX (sum of negatives)",
-                setup: |_, _| Ok(()),
-                verify: |emu, _| {
-                    Ok(vec![
-                        check_reg(emu, "AX", RegisterX86::AX, 0xFFF8),
-                    ])
-                }
-            }
-        ]
+        cases: simple_reg!(AX, 0xFFF8)
     },
     Ex34RedactString = "34_redact_string" => redact_string_34 {
         name: "34_redact_string",
