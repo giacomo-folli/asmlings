@@ -13,5 +13,6 @@
 
 ## 3. Exercise suite
 
-- **[med / med] Fill progression gaps.** There is no exercise on conditional/unconditional jumps (`jmp`, `jz`, `jnz`) before `18_loop`, which uses looping — add one so control flow is introduced before it's assumed. Add flag-assertion exercises (pairs with the `check_flag` work in §2) since flags are core to branching yet never directly asserted. Consider mul/div edge cases (the `DX:AX` high word, division overflow) beyond the single happy path in `14_mul`/`15_div`.
+- **[med / med] Fill progression gaps.** Add flag-assertion exercises (pairs with the `check_flag` work in §2) since flags are core to branching yet never directly asserted. Consider mul/div edge cases (the `DX:AX` high word, division overflow) beyond the single happy path in `14_mul`/`15_div`.
+
 - **[low / med] Lean on `target_label` subroutines for advanced exercises.** The subroutine-call harness (`emulator.rs:68`, sentinel return address) plus multi-case `setup` is the strongest anti-hardcoding tool in the codebase — new advanced exercises should be authored as callable routines tested against several inputs, like `35_splice_strings`.

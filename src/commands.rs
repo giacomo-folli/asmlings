@@ -55,7 +55,11 @@ pub fn init_mode_in_path(dir: PathBuf, force: bool) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    if !dir_exists {
+    if dir_exists && force {
+        fs::remove_dir_all(&dir)?;
+    }
+
+    if !dir.exists() {
         fs::create_dir_all(&dir)?;
     }
     write_current_index(&dir.join(STATE_FILE), 0)?;
@@ -240,7 +244,7 @@ fn read_single_char() -> Option<u8> {
         let _ = libc::tcsetattr(fd, libc::TCSADRAIN, &original_termios);
 
         if bytes_read == 1 {
-            Some(buf[0])
+            buf.get(0).copied()
         } else {
             None
         }

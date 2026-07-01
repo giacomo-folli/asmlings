@@ -444,6 +444,10 @@ fn test_init_force_overwrites() {
     let bare_metal_path = exercises_path.join("01_bare_metal.asm");
     fs::write(&bare_metal_path, "modified content").unwrap();
     
+    // Create an extra unrelated file to test cleaning step
+    let extra_file_path = exercises_path.join("extra_unrelated_file.txt");
+    fs::write(&extra_file_path, "some content").unwrap();
+    
     // 2. Re-run init with force = true
     crate::commands::init_mode_in_path(exercises_path.clone(), true).unwrap();
     
@@ -454,6 +458,9 @@ fn test_init_force_overwrites() {
     let content = fs::read_to_string(&bare_metal_path).unwrap();
     assert_ne!(content, "modified content");
     assert!(content.contains("I AM NOT DONE"));
+
+    // Verify extra file was cleaned
+    assert!(!extra_file_path.exists());
 }
 
 
