@@ -15,4 +15,4 @@ pub const BLUE: &str = "\x1b[34m";
 pub const YELLOW: &str = "\x1b[33m";
 pub const GREEN_BG: &str = "\x1b[42;30m";
 pub const RED_BG: &str = "\x1b[41;30m";
-pub const YELLOW_BG: &str = "\x1b[43;30m";
+

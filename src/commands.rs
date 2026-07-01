@@ -159,42 +159,28 @@ pub fn run_workflow() -> anyhow::Result<()> {
             println!();
 
             if all_passed {
-                if !ex.is_done {
+                println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
+                write_current_index(&state_path, current + 1)?;
+
+                if current + 1 >= total {
                     println!(
-                        "  {YELLOW_BG} IN PROGRESS {RESET}  {BOLD}Assertions passed, but remove \
-                         '; I AM NOT DONE' to advance.{RESET}"
+                        "\n  {GREEN_BG} COMPLETE {RESET}  {BOLD}You've finished every \
+                         exercise!{RESET}"
                     );
                 } else {
-                    println!("  {GREEN_BG} PASS {RESET}  {BOLD}All assertions passed.{RESET}");
-                    write_current_index(&state_path, current + 1)?;
-
-                    if current + 1 >= total {
-                        println!(
-                            "\n  {GREEN_BG} COMPLETE {RESET}  {BOLD}You've finished every \
-                             exercise!{RESET}"
-                        );
-                    } else {
-                        let next = Exercise::load(paths[current + 1].clone())?;
-                        let next_display = next.name.replace('_', " ");
-                        println!(
-                            "  {DIM}next up  {RESET}{BLUE}exercises/{}.asm{RESET}  \
-                             {DIM}({next_display}){RESET}",
-                            next.name
-                        );
-                    }
+                    let next = Exercise::load(paths[current + 1].clone())?;
+                    let next_display = next.name.replace('_', " ");
+                    println!(
+                        "  {DIM}next up  {RESET}{BLUE}exercises/{}.asm{RESET}  \
+                         {DIM}({next_display}){RESET}",
+                        next.name
+                    );
                 }
             } else {
-                if !ex.is_done {
-                    println!(
-                        "  {YELLOW_BG} IN PROGRESS {RESET}  {BOLD}fix the assertions above and save the file to \
-                         re-run{RESET}"
-                    );
-                } else {
-                    println!(
-                        "  {RED_BG} FAIL {RESET}  fix the assertions above and save the file to \
-                         re-run{RESET}"
-                    );
-                }
+                println!(
+                    "  {RED_BG} FAIL {RESET}  fix the assertions above and save the file to \
+                     re-run{RESET}"
+                );
                 println!("  {DIM}file     {RESET}{BLUE}exercises/{}.asm{RESET}", ex.name);
             }
         },

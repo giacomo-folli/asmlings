@@ -13,11 +13,7 @@
 - **[med / med] Collapse trivial suites with a helper/macro.** ~26 of the 35 suites are a single hardcoded `check_reg` with no `setup` (e.g. `exercise_tests.rs:70-99`), which is why the file is 721 lines. A `simple_reg!(name, REG, expected)` helper (or a compact table) would turn each of those into one line while keeping the programmatic model. Reserve the full `ProgrammaticCase { setup, verify }` form for exercises that actually need setup or multiple cases.
 - **[med / low] Wire up `check_flag` — it's dead code.** `harness.rs:32` carries `#[allow(dead_code)]` because no suite checks flags. Yet the flag-teaching exercises (`17_cmp`, `25_carry_flag`, `28_sign_comp`) verify a register side-effect instead of the flag the lesson is about. Have those suites assert the flag directly via `check_flag`.
 
-## 3. General architecture
-
-- **[low / low] Simplify the run flow once legacy is gone.** With the inline path removed, `Exercise` no longer needs `assertions`/`is_done`-from-directives parsing, and `run_workflow`'s `assertions.is_empty() && get_test_suite().is_none()` special-case (`commands.rs:131`) reduces to "is there a suite?". Fewer states to reason about.
-
-## 4. Exercise suite
+## 3. Exercise suite
 
 - **[med / med] Fill progression gaps.** There is no exercise on conditional/unconditional jumps (`jmp`, `jz`, `jnz`) before `18_loop`, which uses looping — add one so control flow is introduced before it's assumed. Add flag-assertion exercises (pairs with the `check_flag` work in §2) since flags are core to branching yet never directly asserted. Consider mul/div edge cases (the `DX:AX` high word, division overflow) beyond the single happy path in `14_mul`/`15_div`.
 - **[low / med] Lean on `target_label` subroutines for advanced exercises.** The subroutine-call harness (`emulator.rs:68`, sentinel return address) plus multi-case `setup` is the strongest anti-hardcoding tool in the codebase — new advanced exercises should be authored as callable routines tested against several inputs, like `35_splice_strings`.

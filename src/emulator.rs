@@ -9,6 +9,7 @@ use crate::{
     exercise::{AssertionResult, Exercise},
 };
 
+#[allow(dead_code)]
 pub fn name_to_reg(name: &str) -> anyhow::Result<RegisterX86> {
     Ok(match name {
         "AX" => RegisterX86::AX,

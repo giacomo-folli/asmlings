@@ -3,6 +3,7 @@ use unicorn_engine::{Unicorn, RegisterX86};
 use crate::exercise::AssertionResult;
 
 pub struct ProgrammaticSuite {
+    #[allow(dead_code)]
     pub name: &'static str,
     pub target_label: Option<&'static str>,
     pub cases: Vec<ProgrammaticCase>,

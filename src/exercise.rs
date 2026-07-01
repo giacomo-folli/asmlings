@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct AssertionResult {
@@ -12,25 +12,12 @@ pub struct AssertionResult {
 pub struct Exercise {
     pub path:    PathBuf,
     pub name:    String,
-    pub is_done: bool,
 }
 
 impl Exercise {
     pub fn load(path: PathBuf) -> anyhow::Result<Self> {
-        let src = fs::read_to_string(&path)?;
         let name = path.file_stem().unwrap_or_default().to_string_lossy().to_string();
 
-        let mut is_done = true;
-
-        for line in src.lines() {
-            let line = line.trim();
-
-            if line == "; I AM NOT DONE" {
-                is_done = false;
-                break;
-            }
-        }
-
-        Ok(Exercise { path, name, is_done })
+        Ok(Exercise { path, name })
     }
 }

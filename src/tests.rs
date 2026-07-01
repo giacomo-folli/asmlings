@@ -184,23 +184,6 @@ fn write_asm(dir: &TempDir, name: &str, content: &str) -> PathBuf {
 }
 
 #[test]
-fn exercise_load_no_assertions() {
-    let dir = TempDir::new().unwrap();
-    let p = write_asm(&dir, "empty", "; just a comment\nmov ax, 1\n");
-    let ex = Exercise::load(p).unwrap();
-    assert!(ex.is_done); // no "I AM NOT DONE" marker
-}
-
-#[test]
-fn exercise_load_is_done_false_when_marker_present() {
-    let dir = TempDir::new().unwrap();
-    let src = "; I AM NOT DONE\nmov ax, 1\n";
-    let p = write_asm(&dir, "wip", src);
-    let ex = Exercise::load(p).unwrap();
-    assert!(!ex.is_done);
-}
-
-#[test]
 fn exercise_load_name_derived_from_filename() {
     let dir = TempDir::new().unwrap();
     let p = write_asm(&dir, "01_mov_basics", "");
@@ -230,15 +213,6 @@ fn integration_nasm_syntax_error_returns_err() {
 // ── NEW COMPREHENSIVE TESTS ──
 
 // 1. Parser Edge Case Tests (Unit Tests)
-
-#[test]
-fn parser_no_marker_means_done() {
-    let dir = TempDir::new().unwrap();
-    let src = "mov ax, 1\n";
-    let p = write_asm(&dir, "no_marker", src);
-    let ex = Exercise::load(p).unwrap();
-    assert!(ex.is_done, "Exercise should be considered done when no I AM NOT DONE marker is present");
-}
 
 // 2. Emulator Runtime and Error Tests (Integration Tests - #[ignore])
 
