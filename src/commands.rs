@@ -128,12 +128,6 @@ pub fn run_workflow() -> anyhow::Result<()> {
     rule("─", w);
     println!();
 
-    if ex.assertions.is_empty() && crate::harness::get_test_suite(&ex.name).is_none() {
-        println!("  {YELLOW}⚠  no assertions found in this exercise{RESET}");
-        println!();
-        return Ok(());
-    }
-
     match run_exercise(&ex) {
         Err(e) => {
             println!("  {RED}✗  error:{RESET} {e}");

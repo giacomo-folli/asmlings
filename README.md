@@ -101,9 +101,7 @@ Each exercise in the `exercises/` directory is a self-contained `.asm` file demo
 
 To complete an exercise, you must do two things:
 
-1. **Satisfy the Assertions / Test Cases:** 
-   - **Inline Assertions:** Simple exercises contain commented directives in the `.asm` file itself, such as `; ASSERT_REG: AX == 0x1337` or `; ASSERT_MEM: [0x0200] == 0x42`. Your code must result in the exact register, flag, or memory state requested.
-   - **Programmatic Test Suites:** More complex/advanced exercises (e.g. functions, string processing, vector merging) are verified against dynamic, programmatic test suites with multiple input/setup variations defined under the hood. The CLI will output the results for each test case.
+1. **Satisfy the Assertions / Test Cases:** Exercises are verified against dynamic, programmatic test suites with multiple input/setup variations defined under the hood. The CLI will output the results for each assertion in the test cases.
 2. **Remove the Sentinel:** Every file contains an `; I AM NOT DONE` comment. Even if your code compiles and passes all assertions and test cases, Asmlings will not advance to the next exercise until you manually delete this line. This ensures you deliberately complete the exercise and understand the solution.
 
 ## Contributing
