@@ -37,6 +37,23 @@ pub fn run_exercise(ex: &Exercise) -> anyhow::Result<Vec<AssertionResult>> {
     run_programmatic_suite(ex, suite)
 }
 
+fn new_emu<'a>(code: &[u8]) -> anyhow::Result<Unicorn<'a, ()>> {
+    let mut emu = Unicorn::new(Arch::X86, Mode::MODE_16)
+        .map_err(|e| anyhow::anyhow!("Unicorn init failed: {:?}", e))?;
+
+    emu.mem_map(MEM_BASE, MEM_SIZE, Prot::ALL)
+        .map_err(|e| anyhow::anyhow!("mem_map failed: {:?}", e))?;
+
+    emu.mem_write(LOAD_ADDR, code)
+        .map_err(|e| anyhow::anyhow!("mem_write failed: {:?}", e))?;
+
+    // Initialize stack
+    emu.reg_write(RegisterX86::SP, 0xFFF0)
+        .map_err(|e| anyhow::anyhow!("reg_write SP failed: {:?}", e))?;
+
+    Ok(emu)
+}
+
 pub fn run_programmatic_suite(
     ex: &Exercise,
     suite: &crate::harness::ProgrammaticSuite,
@@ -45,18 +62,7 @@ pub fn run_programmatic_suite(
     let mut results = Vec::new();
 
     for case in &suite.cases {
-        let mut emu = Unicorn::new(Arch::X86, Mode::MODE_16)
-            .map_err(|e| anyhow::anyhow!("Unicorn init failed: {:?}", e))?;
-
-        emu.mem_map(MEM_BASE, MEM_SIZE, Prot::ALL)
-            .map_err(|e| anyhow::anyhow!("mem_map failed: {:?}", e))?;
-
-        emu.mem_write(LOAD_ADDR, &code)
-            .map_err(|e| anyhow::anyhow!("mem_write failed: {:?}", e))?;
-
-        // Initialize stack
-        emu.reg_write(RegisterX86::SP, 0xFFF0)
-            .map_err(|e| anyhow::anyhow!("reg_write SP failed: {:?}", e))?;
+        let mut emu = new_emu(&code)?;
 
         // Run setup callback
         (case.setup)(&mut emu, &labels)?;
