@@ -84,10 +84,7 @@ pub fn init_mode_in_path(dir: PathBuf, force: bool) -> anyhow::Result<()> {
 
     Ok(())
 }
-
-pub fn run_workflow() -> anyhow::Result<()> {
-    let w = term_width();
-
+fn resolve_exercises() -> anyhow::Result<(PathBuf, Vec<PathBuf>, PathBuf)> {
     let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
         .into_iter()
         .find(|p| p.is_dir())
@@ -101,6 +98,14 @@ pub fn run_workflow() -> anyhow::Result<()> {
         .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("asm"))
         .collect();
     paths.sort();
+
+    Ok((exercises_dir, paths, state_path))
+}
+
+pub fn run_workflow() -> anyhow::Result<()> {
+    let w = term_width();
+
+    let (exercises_dir, paths, state_path) = resolve_exercises()?;
 
     if paths.is_empty() {
         println!("  {YELLOW}no .asm exercises found in {}{RESET}", exercises_dir.display());
@@ -209,19 +214,7 @@ enum WatchEvent {
 }
 
 fn get_current_exercise() -> anyhow::Result<Option<Exercise>> {
-    let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
-        .into_iter()
-        .find(|p| p.is_dir())
-        .ok_or_else(|| anyhow::anyhow!("Could not find exercises/ directory"))?;
-
-    let state_path = exercises_dir.join(STATE_FILE);
-
-    let mut paths: Vec<PathBuf> = fs::read_dir(&exercises_dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("asm"))
-        .collect();
-    paths.sort();
+    let (_, paths, state_path) = resolve_exercises()?;
 
     if paths.is_empty() {
         return Ok(None);
@@ -382,19 +375,7 @@ pub fn watch_mode() -> anyhow::Result<()> {
 }
 
 pub fn debug_exercise() -> anyhow::Result<()> {
-    let exercises_dir = [PathBuf::from(EXERCISES_FOLDER), PathBuf::from("exercises")]
-        .into_iter()
-        .find(|p| p.is_dir())
-        .ok_or_else(|| anyhow::anyhow!("Could not find exercises/ directory"))?;
-
-    let state_path = exercises_dir.join(STATE_FILE);
-
-    let mut paths: Vec<PathBuf> = fs::read_dir(&exercises_dir)?
-        .filter_map(|e| e.ok())
-        .map(|e| e.path())
-        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("asm"))
-        .collect();
-    paths.sort();
+    let (exercises_dir, paths, state_path) = resolve_exercises()?;
 
     if paths.is_empty() {
         anyhow::bail!("No .asm exercises found in {}", exercises_dir.display());
