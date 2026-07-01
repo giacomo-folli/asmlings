@@ -449,8 +449,8 @@ define_exercises! {
             }
         ]
     },
-    Ex26BitCeck = "26_bit_ceck" => bit_ceck_26 {
-        name: "26_bit_ceck",
+    Ex26BitCeck = "26_bit_check" => bit_ceck_26 {
+        name: "26_bit_check",
         target_label: None,
         cases: vec![
             ProgrammaticCase {

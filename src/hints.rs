@@ -155,7 +155,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                add ax, bx\n\
                adc dx, cx"
         ),
-        "26_bit_ceck" => Some(
+        "26_bit_check" => Some(
             "Use `test ax, 1` to check the LSB. Then, use `jnz bit_set` to jump if the bit is set (non-zero). Otherwise, jump to `bit_clear`.\n\
              Example:\n\
                test ax, 1\n\
