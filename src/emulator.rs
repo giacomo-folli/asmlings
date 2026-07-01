@@ -1,6 +1,6 @@
 use unicorn_engine::{
     RegisterX86, Unicorn,
-    unicorn_const::{Arch, Mode, Prot},
+    unicorn_const::{uc_error, Arch, Mode, Prot},
 };
 
 use crate::{
@@ -98,11 +98,44 @@ pub fn run_programmatic_suite(
         }
 
         // Execute the sandbox
-        if let Err(e) = emu.emu_start(start_addr, end_addr, 0, 10_000) {
+        let max_insns: usize = 10_000;
+        if let Err(e) = emu.emu_start(start_addr, end_addr, 0, max_insns) {
+            let detail = match e {
+                uc_error::INSN_INVALID => {
+                    "Invalid instruction encountered. Check that your opcodes and \
+                     operands are valid for 16-bit real mode."
+                        .to_string()
+                }
+                uc_error::READ_UNMAPPED | uc_error::WRITE_UNMAPPED | uc_error::FETCH_UNMAPPED => {
+                    format!(
+                        "Memory access to unmapped address ({:?}). Make sure your \
+                         code does not read, write, or jump outside the allocated memory region.",
+                        e
+                    )
+                }
+                uc_error::READ_PROT | uc_error::WRITE_PROT | uc_error::FETCH_PROT => {
+                    format!(
+                        "Memory protection violation ({:?}). Your code tried to access \
+                         memory without the right permissions.",
+                        e
+                    )
+                }
+                _ => format!("Emulation error: {:?}", e),
+            };
+            anyhow::bail!("Test case '{}': {}", case.name, detail);
+        }
+
+        // Detect hitting the instruction cap (likely infinite loop)
+        let ip = emu.reg_read(RegisterX86::IP)? as u64;
+        if ip != end_addr {
             anyhow::bail!(
-                "Emulation failed or timed out in test case '{}': {:?}",
+                "Test case '{}': Execution did not reach the expected end address \
+                 (IP={:#06X}, expected {:#06X}). Your code likely contains an infinite \
+                 loop — it ran for {} instructions without finishing.",
                 case.name,
-                e
+                ip,
+                end_addr,
+                max_insns
             );
         }
 
