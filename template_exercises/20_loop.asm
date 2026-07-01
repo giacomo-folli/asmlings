@@ -1,4 +1,4 @@
-; EXERCISE 18: The LOOP Instruction
+; EXERCISE 20: The LOOP Instruction
 ; LOOP decrements CX and jumps to the label if CX != 0.
 ; It is shorthand for: DEC CX + JNZ label.
 ;

@@ -1,4 +1,4 @@
-; EXERCISE 21: Register-Indirect Addressing (BX as a Pointer)
+; EXERCISE 23: Register-Indirect Addressing (BX as a Pointer)
 ; On the 8086, BX (and SI/DI) can be used as a memory pointer.
 ; Syntax:  mov ax, [bx]   reads the word at the address stored in BX.
 ;

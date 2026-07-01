@@ -1,4 +1,4 @@
-; EXERCISE 28: Signed Comparisons — JL and JG
+; EXERCISE 30: Signed Comparisons — JL and JG
 ; JL (Jump if Less)    uses the Sign and Overflow flags for SIGNED comparison.
 ; JG (Jump if Greater) is the signed equivalent of JA.
 ; Compare with JB/JA which are unsigned (Carry-based).

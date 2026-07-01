@@ -1,4 +1,4 @@
-; EXERCISE 29: ROL — Rotate Left
+; EXERCISE 31: ROL — Rotate Left
 ; ROL rotates bits left: the MSB that falls off the top wraps around to the LSB.
 ; Unlike SHL, no bits are lost — they cycle around.
 ;

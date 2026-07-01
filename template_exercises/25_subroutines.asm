@@ -1,4 +1,4 @@
-; EXERCISE 23: CALL and RET — Subroutines
+; EXERCISE 25: CALL and RET — Subroutines
 ; CALL pushes the return address onto the stack and jumps to a label.
 ; RET  pops that address and returns execution to the caller.
 ;

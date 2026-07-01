@@ -1,4 +1,4 @@
-; EXERCISE 31: Find the Maximum (Second Long Program)
+; EXERCISE 33: Find the Maximum (Second Long Program)
 ; Scan an array of five unsigned 16-bit words and leave the largest value in AX.
 ;
 ; The array is: 0x000A, 0x002F, 0x0017, 0x003E, 0x0008

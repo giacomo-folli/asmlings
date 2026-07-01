@@ -1,4 +1,4 @@
-; EXERCISE 30: Absolute Value (First Long Program)
+; EXERCISE 32: Absolute Value (First Long Program)
 ; Write a short program that computes the absolute value of a signed 16-bit
 ; number stored in AX.
 ;

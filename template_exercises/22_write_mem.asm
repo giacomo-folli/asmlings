@@ -1,4 +1,4 @@
-; EXERCISE 20: Writing To Memory
+; EXERCISE 22: Writing To Memory
 ; You can also use MOV to store a register's value into memory.
 ; Syntax:  mov [label], ax   writes AX into the 16-bit word at that label.
 ;

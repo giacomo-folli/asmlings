@@ -191,18 +191,51 @@ define_exercises! {
         target_label: None,
         cases: simple_reg!(BX, 0x0001)
     },
-    Ex18Loop = "18_loop" => loop_18 {
-        name: "18_loop",
+    Ex18Jmp = "18_jmp" => jmp_18 {
+        name: "18_jmp",
+        target_label: None,
+        cases: simple_reg!(AX, 0x1111)
+    },
+    Ex19Jz = "19_jz" => jz_19 {
+        name: "19_jz",
+        target_label: None,
+        cases: vec![
+            ProgrammaticCase {
+                name: "AX is zero",
+                setup: |emu, _| {
+                    set_reg(emu, RegisterX86::AX, 0)
+                },
+                verify: |emu, _| {
+                    Ok(vec![
+                        check_reg(emu, "BX", RegisterX86::BX, 0x0001),
+                    ])
+                }
+            },
+            ProgrammaticCase {
+                name: "AX is non-zero",
+                setup: |emu, _| {
+                    set_reg(emu, RegisterX86::AX, 5)
+                },
+                verify: |emu, _| {
+                    Ok(vec![
+                        check_reg(emu, "BX", RegisterX86::BX, 0x0002),
+                    ])
+                }
+            }
+        ]
+    },
+    Ex20Loop = "20_loop" => loop_20 {
+        name: "20_loop",
         target_label: None,
         cases: simple_reg!(AX, 0x000C)
     },
-    Ex19ReadMem = "19_read_mem" => read_mem_19 {
-        name: "19_read_mem",
+    Ex21ReadMem = "21_read_mem" => read_mem_21 {
+        name: "21_read_mem",
         target_label: None,
         cases: simple_reg!(AX, 0xDEAD)
     },
-    Ex20WriteMem = "20_write_mem" => write_mem_20 {
-        name: "20_write_mem",
+    Ex22WriteMem = "22_write_mem" => write_mem_22 {
+        name: "22_write_mem",
         target_label: None,
         cases: vec![
             ProgrammaticCase {
@@ -217,53 +250,53 @@ define_exercises! {
             }
         ]
     },
-    Ex21RegIndAddress = "21_reg_ind_address" => reg_ind_address_21 {
-        name: "21_reg_ind_address",
+    Ex23RegIndAddress = "23_reg_ind_address" => reg_ind_address_23 {
+        name: "23_reg_ind_address",
         target_label: None,
         cases: simple_reg!(AX, 0xF00D)
     },
-    Ex22SourceIndex = "22_source_index" => source_index_22 {
-        name: "22_source_index",
+    Ex24SourceIndex = "24_source_index" => source_index_24 {
+        name: "24_source_index",
         target_label: None,
         cases: simple_reg!(BX, 0x0006)
     },
-    Ex23Subroutines = "23_subroutines" => subroutines_23 {
-        name: "23_subroutines",
+    Ex25Subroutines = "25_subroutines" => subroutines_25 {
+        name: "25_subroutines",
         target_label: None,
         cases: simple_reg!(AX, 0x0012)
     },
-    Ex24Xchg = "24_xchg" => xchg_24 {
-        name: "24_xchg",
+    Ex26Xchg = "26_xchg" => xchg_26 {
+        name: "26_xchg",
         target_label: None,
         cases: simple_reg!(AX = 0x2222, BX = 0x1111)
     },
-    Ex25CarryFlag = "25_carry_flag" => carry_flag_25 {
-        name: "25_carry_flag",
+    Ex27CarryFlag = "27_carry_flag" => carry_flag_27 {
+        name: "27_carry_flag",
         target_label: None,
         cases: simple_reg!(AX = 0x0000, DX = 0x0002)
     },
-    Ex26BitCeck = "26_bit_check" => bit_ceck_26 {
-        name: "26_bit_check",
+    Ex28BitCheck = "28_bit_check" => bit_check_28 {
+        name: "28_bit_check",
         target_label: None,
         cases: simple_reg!(BX, 0x0001)
     },
-    Ex27PushaPopa = "27_pusha_popa" => pusha_popa_27 {
-        name: "27_pusha_popa",
+    Ex29PushaPopa = "29_pusha_popa" => pusha_popa_29 {
+        name: "29_pusha_popa",
         target_label: None,
         cases: simple_reg!(AX = 0x0001, BX = 0x0002, CX = 0x0003)
     },
-    Ex28SignComp = "28_sign_comp" => sign_comp_28 {
-        name: "28_sign_comp",
+    Ex30SignComp = "30_sign_comp" => sign_comp_30 {
+        name: "30_sign_comp",
         target_label: None,
         cases: simple_reg!(BX, 0xFFFF)
     },
-    Ex29Rol = "29_rol" => rol_29 {
-        name: "29_rol",
+    Ex31Rol = "31_rol" => rol_31 {
+        name: "31_rol",
         target_label: None,
         cases: simple_reg!(AX, 0x0003)
     },
-    Ex30AbsVal = "30_abs_val" => abs_val_30 {
-        name: "30_abs_val",
+    Ex32AbsVal = "32_abs_val" => abs_val_32 {
+        name: "32_abs_val",
         target_label: Some("abs_val"),
         cases: vec![
             ProgrammaticCase {
@@ -312,23 +345,23 @@ define_exercises! {
             },
         ]
     },
-    Ex31Max = "31_max" => max_31 {
-        name: "31_max",
+    Ex33Max = "33_max" => max_33 {
+        name: "33_max",
         target_label: None,
         cases: simple_reg!(AX, 0x003E)
     },
-    Ex32Popcount = "32_popcount" => popcount_32 {
-        name: "32_popcount",
+    Ex34Popcount = "34_popcount" => popcount_34 {
+        name: "34_popcount",
         target_label: None,
         cases: simple_reg!(BX, 0x0009)
     },
-    Ex33MergeVectors = "33_merge_vectors" => merge_vectors_33 {
-        name: "33_merge_vectors",
+    Ex35MergeVectors = "35_merge_vectors" => merge_vectors_35 {
+        name: "35_merge_vectors",
         target_label: None,
         cases: simple_reg!(AX, 0xFFF8)
     },
-    Ex34RedactString = "34_redact_string" => redact_string_34 {
-        name: "34_redact_string",
+    Ex36RedactString = "36_redact_string" => redact_string_36 {
+        name: "36_redact_string",
         target_label: None,
         cases: vec![
             ProgrammaticCase {
@@ -355,8 +388,8 @@ define_exercises! {
             }
         ]
     },
-    Ex35SpliceStrings = "35_splice_strings" => splice_strings_35 {
-        name: "35_splice_strings",
+    Ex37SpliceStrings = "37_splice_strings" => splice_strings_37 {
+        name: "37_splice_strings",
         target_label: None,
         cases: vec![
             ProgrammaticCase {

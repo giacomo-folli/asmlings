@@ -269,10 +269,10 @@ fn harness_get_test_suite_known_exercises() {
     assert!(s.target_label.is_none());
     assert_eq!(s.cases.len(), 1);
 
-    let suite_30 = crate::harness::get_test_suite("30_abs_val");
-    assert!(suite_30.is_some());
-    let s = suite_30.unwrap();
-    assert_eq!(s.name, "30_abs_val");
+    let suite_32 = crate::harness::get_test_suite("32_abs_val");
+    assert!(suite_32.is_some());
+    let s = suite_32.unwrap();
+    assert_eq!(s.name, "32_abs_val");
     assert_eq!(s.target_label, Some("abs_val"));
     assert_eq!(s.cases.len(), 4);
 }
@@ -304,7 +304,7 @@ _start:
 
 #[test]
 #[ignore]
-fn integration_programmatic_30_abs_val_fails_cheat() {
+fn integration_programmatic_32_abs_val_fails_cheat() {
     let dir = TempDir::new().unwrap();
     // Cheat implementation: just load 10 into AX, ignoring the input
     let src = "\
@@ -319,7 +319,7 @@ abs_val:
     mov ax, 10
     ret
 ";
-    let p = write_asm(&dir, "30_abs_val", src);
+    let p = write_asm(&dir, "32_abs_val", src);
     let ex = Exercise::load(p).unwrap();
     let results = run_exercise(&ex).unwrap();
     // There are 4 test cases (Neg 10, Pos 7, Zero 0, Neg 1)
@@ -336,7 +336,7 @@ abs_val:
 
 #[test]
 #[ignore]
-fn integration_programmatic_30_abs_val_passes_correct() {
+fn integration_programmatic_32_abs_val_passes_correct() {
     let dir = TempDir::new().unwrap();
     // Correct absolute value implementation using jump/neg
     let src = "\
@@ -354,7 +354,7 @@ abs_val:
 .done:
     ret
 ";
-    let p = write_asm(&dir, "30_abs_val", src);
+    let p = write_asm(&dir, "32_abs_val", src);
     let ex = Exercise::load(p).unwrap();
     let results = run_exercise(&ex).unwrap();
     assert_eq!(results.len(), 4);

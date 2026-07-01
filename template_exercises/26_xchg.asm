@@ -1,4 +1,4 @@
-; EXERCISE 24: XCHG — Swap Without a Temporary
+; EXERCISE 26: XCHG — Swap Without a Temporary
 ; XCHG swaps the contents of two registers atomically.
 ; It is equivalent to a three-instruction swap but fits in a single opcode.
 ;

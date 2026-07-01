@@ -1,4 +1,4 @@
-; EXERCISE 35: Splice Strings
+; EXERCISE 37: Splice Strings
 ;
 ; You have two C strings (terminated by '\0'):
 ;

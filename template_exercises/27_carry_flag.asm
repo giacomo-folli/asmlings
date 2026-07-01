@@ -1,4 +1,4 @@
-; EXERCISE 25: The Carry Flag and ADC
+; EXERCISE 27: The Carry Flag and ADC
 ; ADD sets the Carry Flag (CF) when the result overflows 16 bits.
 ; ADC (Add with Carry) adds two operands PLUS the current CF.
 ; Together, ADD + ADC allow you to add 32-bit numbers stored in two registers.

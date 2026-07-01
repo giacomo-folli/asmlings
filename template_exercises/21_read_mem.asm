@@ -1,4 +1,4 @@
-; EXERCISE 19: Reading From Memory
+; EXERCISE 21: Reading From Memory
 ; The MOV instruction can load a value from a memory address into a register.
 ; Syntax:  mov ax, [label]   reads the 16-bit word stored at that label.
 ;

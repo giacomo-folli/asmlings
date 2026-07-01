@@ -109,31 +109,49 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                mov bx, 0x0001\n\
              done:"
         ),
-        "18_loop" => Some(
+        "18_jmp" => Some(
+            "Use the `jmp` instruction to jump to a label and skip the instruction that overwrites AX.\n\
+             Example:\n\
+               jmp .target\n\
+               mov ax, 0x2222\n\
+             .target:"
+        ),
+        "19_jz" => Some(
+            "Use `cmp ax, 0` followed by `jz` to jump to a label if AX is zero. Otherwise, let execution fall through.\n\
+             Example:\n\
+               cmp ax, 0\n\
+               jz .is_zero\n\
+               mov bx, 0x0002\n\
+               jmp .done\n\
+             .is_zero:\n\
+               mov bx, 0x0001\n\
+             .done:"
+        ),
+        "20_loop" => Some(
             "The `loop` instruction decrements CX and jumps if CX != 0. Define a label at the start of your loop, perform `add ax, 3` inside, and finish with `loop label`.\n\
              Example:\n\
                add_loop:\n\
                  add ax, 3\n\
                  loop add_loop"
         ),
-        "19_read_mem" => Some(
+        "21_read_mem" => Some(
             "Use square brackets around the label name to dereference its memory address and read its value.\n\
              Example: `mov ax, [my_value]`"
         ),
-        "20_write_mem" => Some(
+        "22_write_mem" => Some(
             "Compute the sum in AX, then use the `mov [result], ax` instruction to write the 16-bit value into the variable `result` in memory.\n\
              Example:\n\
                mov ax, 7\n\
                add ax, 8\n\
                mov [result], ax"
         ),
-        "21_reg_ind_address" => Some(
+        "23_reg_ind_address" => Some(
             "First, load the address of `treasure` into BX using `mov bx, treasure`. Second, dereference BX using `[bx]` to load the value at that address into AX.\n\
              Example:\n\
                mov bx, treasure\n\
                mov ax, [bx]"
         ),
-        "22_source_index" => Some(
+        "24_source_index" => Some(
             "Walk the array using the SI register as a pointer. Read a word with `[si]`, add it to BX, and advance SI by 2 (since each word is 2 bytes).\n\
              Example:\n\
                mov ax, [si]\n\
@@ -141,45 +159,45 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                add si, 2\n\
                ; (repeat or loop for all 3 elements)"
         ),
-        "23_subroutines" => Some(
+        "25_subroutines" => Some(
             "Use the `call` instruction to execute the `double` subroutine. The subroutine will return automatically using `ret`.\n\
              Example: `call double`"
         ),
-        "24_xchg" => Some(
+        "26_xchg" => Some(
             "Use the `xchg` instruction to swap the values of AX and BX atomically.\n\
              Example: `xchg ax, bx`"
         ),
-        "25_carry_flag" => Some(
+        "27_carry_flag" => Some(
             "First, add the lower 16-bit words using `add ax, bx` (which will set the Carry Flag when it overflows). Then, add the higher 16-bit words using `adc dx, cx` to include the Carry Flag.\n\
              Example:\n\
                add ax, bx\n\
                adc dx, cx"
         ),
-        "26_bit_check" => Some(
+        "28_bit_check" => Some(
             "Use `test ax, 1` to check the LSB. Then, use `jnz bit_set` to jump if the bit is set (non-zero). Otherwise, jump to `bit_clear`.\n\
              Example:\n\
                test ax, 1\n\
                jnz bit_set\n\
                jmp bit_clear"
         ),
-        "27_pusha_popa" => Some(
+        "29_pusha_popa" => Some(
             "Use the `popa` instruction to pop all general-purpose registers off the stack, restoring them to the values they had when `pusha` was called.\n\
              Example: `popa`"
         ),
-        "28_sign_comp" => Some(
+        "30_sign_comp" => Some(
             "Use `cmp ax, 0` followed by `jl is_negative` (jump if less, which performs a signed comparison). If the condition isn't met, jump to `is_positive`.\n\
              Example:\n\
                cmp ax, 0\n\
                jl is_negative\n\
                jmp is_positive"
         ),
-        "29_rol" => Some(
+        "31_rol" => Some(
             "Use the `rol` instruction to rotate AX left by 1 bit.\n\
              Example:\n\
                mov ax, 0x8001\n\
                rol ax, 1"
         ),
-        "30_abs_val" => Some(
+        "32_abs_val" => Some(
             "Check if AX is negative by comparing it to 0 (`cmp ax, 0`). If it is less than 0, negate it with `neg ax`.\n\
              Example:\n\
                cmp ax, 0\n\
@@ -188,7 +206,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
              done:\n\
                ret"
         ),
-        "31_max" => Some(
+        "33_max" => Some(
             "Loop 5 times (using CX). In each iteration, compare AX to the current word at `[si]`. If AX is less, load that word into AX. Then advance SI by 2.\n\
              Example:\n\
                max_loop:\n\
@@ -199,7 +217,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                  add si, 2\n\
                  loop max_loop"
         ),
-        "32_popcount" => Some(
+        "34_popcount" => Some(
             "Loop 16 times. In each iteration, shift AX right by 1 to put the lowest bit into the Carry Flag (`shr ax, 1`), then add the Carry Flag to BX using `adc bx, 0`.\n\
              Example:\n\
                count_loop:\n\
@@ -207,17 +225,17 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                  adc bx, 0\n\
                  loop count_loop"
         ),
-        "33_merge_vectors" => Some(
+        "35_merge_vectors" => Some(
             "Use two separate index pointers or registers (like SI for vett1 and DI for vett2) and advance them in opposite directions.\n\
              Keep track of an iteration counter (CX) and use a flag or check the lowest bit of the counter to alternate between sum and difference.\n\
              Finally, loop through vett3 and use `test ax, ax` or `cmp ax, 0` followed by `jns` to skip positive numbers when summing."
         ),
-        "34_redact_string" => Some(
+        "36_redact_string" => Some(
             "Maintain a counter for the current position in the original string. When reading a character, scan the `indici` array to check if the current position is listed.\n\
              If it is listed, skip writing the character to `out_buf`. If it's not listed, write it and increment the `out_buf` pointer.\n\
              Don't forget to append the null terminator '\\0' to `out_buf` at the very end!"
         ),
-        "35_splice_strings" => Some(
+        "37_splice_strings" => Some(
             "Write a helper function `strlen` that takes a string pointer, iterates until it finds 0, and returns the length.\n\
              For s1, copy the first (len/2) bytes to s3.\n\
              For s2, start copying from the end of s2 (address + len - 1) backwards, for (len - len/2) bytes.\n\

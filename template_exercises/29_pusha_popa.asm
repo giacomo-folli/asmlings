@@ -1,4 +1,4 @@
-; EXERCISE 27: PUSHA and POPA — Save and Restore All Registers
+; EXERCISE 29: PUSHA and POPA — Save and Restore All Registers
 ; PUSHA pushes AX, CX, DX, BX, SP (before push), BP, SI, DI onto the stack.
 ; POPA  restores them in reverse order (it ignores the saved SP value).
 ; This is used to preserve register state across a subroutine call.

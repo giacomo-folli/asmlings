@@ -1,4 +1,4 @@
-; EXERCISE 26: TEST — Non-Destructive Bit Check
+; EXERCISE 28: TEST — Non-Destructive Bit Check
 ; TEST performs a bitwise AND but ONLY updates FLAGS; it does not store the result.
 ; It is the read-only counterpart of AND, used to check individual bits.
 ; If the tested bit is 0 → ZF=1. If non-zero → ZF=0.

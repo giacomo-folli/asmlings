@@ -1,4 +1,4 @@
-; EXERCISE 32: Count the Set Bits — Popcount (Third Long Program)
+; EXERCISE 34: Count the Set Bits — Popcount (Third Long Program)
 ; Count how many bits are 1 in a 16-bit value and store the count in BX.
 ; This operation is known as "population count" or "popcount".
 ;

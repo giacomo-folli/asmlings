@@ -1,4 +1,4 @@
-; EXERCISE 33: Merge Vectors
+; EXERCISE 35: Merge Vectors
 ;
 ; You have two arrays of 16-bit signed integers with the same number of elements:
 ;     vett1: 5, -2, 9, 0, -7, 3

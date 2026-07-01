@@ -1,4 +1,4 @@
-; EXERCISE 22: Array Traversal with SI
+; EXERCISE 24: Array Traversal with SI
 ; SI (Source Index) is commonly used to walk through arrays.
 ; "[si]" reads the word at the address in SI, and "add si, 2" advances to the
 ; next word (each word is 2 bytes).

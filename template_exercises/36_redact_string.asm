@@ -1,4 +1,4 @@
-; EXERCISE 34: Redact String
+; EXERCISE 36: Redact String
 ;
 ; The program must:
 ;
