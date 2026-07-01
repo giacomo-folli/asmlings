@@ -179,7 +179,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                mov ax, 0x8001\n\
                rol ax, 1"
         ),
-        "30_test_1" => Some(
+        "30_abs_val" => Some(
             "Check if AX is negative by comparing it to 0 (`cmp ax, 0`). If it is less than 0, negate it with `neg ax`.\n\
              Example:\n\
                cmp ax, 0\n\
@@ -188,7 +188,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
              done:\n\
                ret"
         ),
-        "31_test_2" => Some(
+        "31_max" => Some(
             "Loop 5 times (using CX). In each iteration, compare AX to the current word at `[si]`. If AX is less, load that word into AX. Then advance SI by 2.\n\
              Example:\n\
                max_loop:\n\
@@ -199,7 +199,7 @@ pub fn get_hint(exercise_name: &str) -> Option<&'static str> {
                  add si, 2\n\
                  loop max_loop"
         ),
-        "32_test_3" => Some(
+        "32_popcount" => Some(
             "Loop 16 times. In each iteration, shift AX right by 1 to put the lowest bit into the Carry Flag (`shr ax, 1`), then add the Carry Flag to BX using `adc bx, 0`.\n\
              Example:\n\
                count_loop:\n\

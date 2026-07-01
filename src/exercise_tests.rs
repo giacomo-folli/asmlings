@@ -511,8 +511,8 @@ define_exercises! {
             }
         ]
     },
-    Ex30Test1 = "30_test_1" => test_1_30 {
-        name: "30_test_1",
+    Ex30AbsVal = "30_abs_val" => abs_val_30 {
+        name: "30_abs_val",
         target_label: Some("abs_val"),
         cases: vec![
             ProgrammaticCase {
@@ -561,8 +561,8 @@ define_exercises! {
             },
         ]
     },
-    Ex31Test2 = "31_test_2" => test_2_31 {
-        name: "31_test_2",
+    Ex31Max = "31_max" => max_31 {
+        name: "31_max",
         target_label: None,
         cases: vec![
             ProgrammaticCase {
@@ -576,8 +576,8 @@ define_exercises! {
             }
         ]
     },
-    Ex32Test3 = "32_test_3" => test_3_32 {
-        name: "32_test_3",
+    Ex32Popcount = "32_popcount" => popcount_32 {
+        name: "32_popcount",
         target_label: None,
         cases: vec![
             ProgrammaticCase {
